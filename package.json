@@ -1,0 +1,41 @@
+{
+  "name": "@unblockingapi/mcp",
+  "version": "0.1.0",
+  "description": "Official MCP server for UnblockingAPI — web unblocking + SERP for AI agents",
+  "type": "module",
+  "bin": {
+    "unblockingapi-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "unblockingapi",
+    "scraping",
+    "web-unblocking",
+    "serp",
+    "ai",
+    "claude"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
