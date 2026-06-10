@@ -30,9 +30,16 @@ assets (e.g. image URLs or a visually complete page).
 
 You need an UnblockingAPI key — get one at <https://unblockingapi.com>.
 
-### Claude Desktop / Claude Code
+The server runs over **stdio** (launched with `npx`). Desktop/CLI clients that
+spawn a local process (Claude Desktop, Claude Code, Cursor, …) use it directly.
+Web clients that only accept a **remote URL** (ChatGPT) need it bridged to HTTP —
+see the [ChatGPT](#chatgpt) section.
 
-Add to your MCP config (e.g. `claude_desktop_config.json`):
+### Claude Desktop
+
+Edit `claude_desktop_config.json` (macOS:
+`~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`), then
+restart Claude:
 
 ```json
 {
@@ -40,13 +47,43 @@ Add to your MCP config (e.g. `claude_desktop_config.json`):
     "unblockingapi": {
       "command": "npx",
       "args": ["-y", "@unblockingapi/mcp"],
-      "env": {
-        "UNBLOCKINGAPI_KEY": "your_api_key_here"
-      }
+      "env": { "UNBLOCKINGAPI_KEY": "your_api_key_here" }
     }
   }
 }
 ```
+
+### Claude Code (CLI)
+
+```bash
+claude mcp add unblockingapi \
+  -e UNBLOCKINGAPI_KEY=your_api_key_here \
+  -- npx -y @unblockingapi/mcp
+```
+
+### Cursor
+
+Add to `~/.cursor/mcp.json` (or a project `.cursor/mcp.json`) — same shape as the
+Claude Desktop block above.
+
+### ChatGPT
+
+ChatGPT (Developer mode → **Connectors**) only accepts **remote** MCP servers
+reachable over a public HTTPS URL — it can't spawn a local `npx` process. Bridge
+this stdio server to HTTP with [`supergateway`](https://github.com/supercorp-ai/supergateway):
+
+```bash
+UNBLOCKINGAPI_KEY=your_api_key_here \
+  npx -y supergateway --stdio "npx -y @unblockingapi/mcp" --port 8000
+# exposes an MCP endpoint at http://localhost:8000/sse
+```
+
+Then expose it publicly (ChatGPT can't reach `localhost`) with a tunnel, e.g.
+`cloudflared tunnel --url http://localhost:8000` or `ngrok http 8000`, and add the
+resulting `https://…./sse` URL under **Settings → Connectors** in ChatGPT.
+
+> For production ChatGPT use you'll want a hosted HTTPS endpoint rather than a
+> local tunnel. A first-class hosted/streamable-HTTP transport is on the roadmap.
 
 ### Environment variables
 
@@ -54,7 +91,7 @@ Add to your MCP config (e.g. `claude_desktop_config.json`):
 | --- | --- | --- | --- |
 | `UNBLOCKINGAPI_KEY` | yes | — | Your API key. |
 | `UNBLOCKINGAPI_BASE_URL` | no | `https://api.unblockingapi.com` | Override the API base URL. |
-| `UNBLOCKINGAPI_TIMEOUT_MS` | no | `45000` | Per-request timeout. Rendered fetches can take ~35s. |
+| `UNBLOCKINGAPI_TIMEOUT_MS` | no | `70000` | Per-request timeout. Rendered fetches can take up to ~65s. |
 
 ## Usage examples
 
