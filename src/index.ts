@@ -8,7 +8,7 @@
  * Transport: stdio. Config via environment:
  *   UNBLOCKINGAPI_KEY        (required)  your API key
  *   UNBLOCKINGAPI_BASE_URL   (optional)  override base URL (default https://api.unblockingapi.com)
- *   UNBLOCKINGAPI_TIMEOUT_MS (optional)  request timeout in ms (default 45000)
+ *   UNBLOCKINGAPI_TIMEOUT_MS (optional)  request timeout in ms (default 70000)
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -25,7 +25,7 @@ const client = new UnblockingApiClient({ apiKey, baseUrl, timeoutMs });
 
 const server = new McpServer({
   name: "unblockingapi",
-  version: "0.1.0",
+  version: "0.2.0",
 });
 
 /** Render an ApiResult into MCP tool output, marking failures with isError. */
@@ -107,7 +107,10 @@ server.tool(
       .boolean()
       .optional()
       .describe(
-        "Render-only. Skip images/CSS/fonts for a faster document-only fetch. Requires render=true.",
+        "Render-only. When rendering, presentational assets (CSS, images, fonts, media) are " +
+          "skipped by DEFAULT for speed — JavaScript still executes, so SPAs and dynamic content " +
+          "still render fully. Set block_assets=false to also download CSS/images/fonts (e.g. when " +
+          "you need asset URLs or a visually complete render). Ignored when render=false.",
       ),
     remove_scripts: z
       .boolean()
@@ -145,6 +148,23 @@ server.tool(
       .describe("Result offset for pagination (0 = page 1, 10 = page 2, …)."),
   },
   async (args) => safe(() => client.template("google-search", args)),
+);
+
+// --- Tool: idealista_property ------------------------------------------------
+server.tool(
+  "idealista_property",
+  "Extract structured data from an idealista.com property listing (Spain's largest " +
+    "real-estate portal) — price, size, rooms, bathrooms, floor, energy rating, " +
+    "features, photos, advertiser, and more, as JSON. Pass the full listing URL.",
+  {
+    url: z
+      .string()
+      .url()
+      .describe(
+        "Full idealista.com listing URL, e.g. https://www.idealista.com/inmueble/111072490/",
+      ),
+  },
+  async (args) => safe(() => client.template("idealista-property", args)),
 );
 
 // NOTE: an `ahrefs-website-authority` template exists in the API but is currently

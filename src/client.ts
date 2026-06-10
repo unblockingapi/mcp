@@ -10,7 +10,10 @@
  */
 
 const DEFAULT_BASE_URL = "https://api.unblockingapi.com";
-const DEFAULT_TIMEOUT_MS = 45_000;
+// The API's render path runs up to REQUEST_TIMEOUT=65s (cloakapi JOB_DEADLINE 60s
+// + captcha-retry/transport margin); keep the client above that so a slow render
+// returns the API's own 504 body rather than being cut off client-side.
+const DEFAULT_TIMEOUT_MS = 70_000;
 
 export class UnblockingApiError extends Error {
   constructor(
