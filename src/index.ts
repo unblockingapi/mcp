@@ -147,18 +147,9 @@ server.tool(
   async (args) => safe(() => client.template("google-search", args)),
 );
 
-// --- Tool: ahrefs_website_authority -----------------------------------------
-server.tool(
-  "ahrefs_website_authority",
-  "Look up a domain's website authority / domain rating via UnblockingAPI's Ahrefs template. " +
-    "Returns structured SEO authority metrics as JSON.",
-  {
-    domain: z
-      .string()
-      .describe("The domain to look up (e.g. 'example.com'), without protocol."),
-  },
-  async (args) => safe(() => client.template("ahrefs-website-authority", args)),
-);
+// NOTE: an `ahrefs-website-authority` template exists in the API but is currently
+// disabled server-side (the Ahrefs render flow isn't reliable yet), so it is not
+// exposed as a tool here. Re-add it once the template is enabled in production.
 
 async function main() {
   if (!apiKey) {

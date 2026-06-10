@@ -12,7 +12,9 @@ engine and rotating residential proxies.
 | --- | --- |
 | `unblock_fetch` | Fetch any URL, bypassing anti-bot/CAPTCHA/geo-blocks. Optional headless-browser rendering for SPAs and dynamic pages. Returns HTML. |
 | `google_search` | Run a Google search and get structured organic results as JSON. |
-| `ahrefs_website_authority` | Look up a domain's authority / domain-rating metrics as JSON. |
+
+> More tools (e.g. Ahrefs website authority) will be added as additional API
+> templates go live.
 
 ## Setup
 
