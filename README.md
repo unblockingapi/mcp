@@ -35,6 +35,23 @@ spawn a local process (Claude Desktop, Claude Code, Cursor, …) use it directly
 Web clients that only accept a **remote URL** (ChatGPT) need it bridged to HTTP —
 see the [ChatGPT](#chatgpt) section.
 
+### Install by prompt
+
+Agentic clients that can run commands or edit their own config (Claude Code,
+Cursor's agent, Cline, etc.) can install the server when you just ask. Paste a
+prompt like:
+
+> **"Install the `@unblockingapi/mcp` MCP server. My API key is `sk_xxx`.
+> It runs over stdio via `npx -y @unblockingapi/mcp` and needs the env var
+> `UNBLOCKINGAPI_KEY`."**
+
+In **Claude Code** that's enough — it will run the right `claude mcp add` for you.
+In **Cursor / Cline** the agent will add the entry to your `mcp.json`. After it
+finishes, start a new chat (or reload MCP servers) so the tools load.
+
+> GUI apps without an agent that can edit config — **Claude Desktop** and
+> **ChatGPT** — can't self-install from a prompt; use the manual steps below.
+
 ### Claude Desktop
 
 Edit `claude_desktop_config.json` (macOS:
