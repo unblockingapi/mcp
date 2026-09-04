@@ -13,7 +13,8 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "mcp",
@@ -26,6 +27,14 @@
     "claude"
   ],
   "license": "MIT",
+  "homepage": "https://github.com/unblockingapi/mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/unblockingapi/mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/unblockingapi/mcp/issues"
+  },
   "engines": {
     "node": ">=18"
   },
