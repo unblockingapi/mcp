@@ -3,40 +3,60 @@
 Official [Model Context Protocol](https://modelcontextprotocol.io) server and
 Claude Code plugin for [UnblockingAPI](https://unblockingapi.com). Gives AI
 agents (Claude, Cursor, VS Code, Zed, …) a real browser behind rotating
-residential proxies: fetch bot-protected and JavaScript-heavy pages, run
-Google searches, and parse sites into structured JSON with published templates.
+residential proxies: fetch bot-protected and JavaScript-heavy pages, and parse
+any site a published template covers into structured JSON.
 
 ## Tools
 
 | Tool | What it does | Cost |
 | --- | --- | --- |
-| `unblock_fetch` | Fetch any URL, bypassing anti-bot walls, CAPTCHAs and geo-blocks. Plain HTTP by default, `render: true` for a real browser. Pass `template` to get JSON instead of HTML. | 1 credit per success |
-| `google_search` | Google search → JSON (`query`, `results[{position,title,description,url}]`, `related_searches`). | 1 credit |
-| `list_templates` | Browse the published structured-data templates (search engines, property portals, business directories, …) with an example call for each. | free |
+| `unblock_fetch` | Fetch any URL, bypassing anti-bot walls, CAPTCHAs and geo-blocks. Plain HTTP by default, `render: true` for a real browser. Pass `template` to get structured JSON instead of HTML. | 1 credit per success |
+| `find_templates` | Find a template that parses a site into JSON — by the URL you are about to fetch, by keyword, or by category. | free |
 
 Failed requests are free. The server also ships instructions and a skill so the
-agent starts with a plain fetch and only renders when a page needs JavaScript.
+agent starts with a plain fetch, renders only when a page needs JavaScript, and
+checks for a template before parsing a known site by hand.
+
+### Templates
+
+A template turns a page into named fields instead of markup. The catalogue is
+open-ended — search engines, marketplaces, property portals, company registries
+— and anyone can publish one from the [editor](https://editor.unblockingapi.com).
+There is no special handling for any particular site: every template, official
+or community, is reached the same way.
+
+```
+find_templates(url: "https://www.allabolag.se/foretag/…")   → kjellberg/allabolag
+unblock_fetch(url: "…", template: "kjellberg/allabolag")     → { company_title, turnover, … }
+```
+
+If a parser fails because the site changed, you get raw HTML back with
+`parse_error: true` rather than an error.
 
 ## Setup
 
 You need an UnblockingAPI key — sign up at <https://unblockingapi.com> (500 free
 credits, no card).
 
-Detailed guides: **[Claude](docs/claude.md)** (Claude Code plugin, `claude mcp add`,
-Claude Desktop) · **[Cursor](docs/cursor.md)** · other clients below.
+Detailed guides: **[Claude](docs/claude-setup.md)** (Claude Code plugin, `claude mcp add`,
+Claude Desktop) · **[Cursor](docs/cursor-setup.md)** · other clients below.
 
 ### Claude Code — plugin (recommended)
 
-The plugin bundles the MCP server, asks for your key on install, and makes
-Claude use `unblock_fetch` instead of its built-in web fetch.
+The plugin bundles the MCP server, stores your key, and makes Claude use
+`unblock_fetch` instead of its built-in web fetch.
 
 ```bash
 claude plugin marketplace add unblockingapi/mcp
-claude plugin install unblockingapi@unblockingapi-plugins
 ```
 
-Or inside Claude Code: `/plugin marketplace add unblockingapi/mcp`, then
-`/plugin install unblockingapi@unblockingapi-plugins`.
+```bash
+claude plugin install unblockingapi@unblockingapi-plugins --config api_key=your_api_key_here
+```
+
+Without `--config` the plugin installs with no key and every fetch fails; set it
+later with `/plugin configure` inside Claude Code. Or install interactively with
+`/plugin marketplace add unblockingapi/mcp` then `/plugin install unblockingapi@unblockingapi-plugins`.
 
 ### Claude Code — plain MCP server
 
@@ -66,7 +86,7 @@ Windows: `%APPDATA%\Claude\`), then restart Claude:
 ### Cursor
 
 Add the same block to `~/.cursor/mcp.json` (every project) or a project's
-`.cursor/mcp.json`. See [docs/cursor.md](docs/cursor.md) for the one-click
+`.cursor/mcp.json`. See [docs/cursor-setup.md](docs/cursor-setup.md) for the one-click
 install link and a rule that makes the agent prefer `unblock_fetch`.
 
 ### VS Code (Copilot agent mode)
@@ -102,7 +122,6 @@ UNBLOCKINGAPI_KEY=your_api_key_here \
 | `UNBLOCKINGAPI_KEY` | yes | — | Your API key. (The Claude Code plugin supplies it from its config prompt.) |
 | `UNBLOCKINGAPI_BASE_URL` | no | `https://api.unblockingapi.com` | Override the API base URL. |
 | `UNBLOCKINGAPI_TIMEOUT_MS` | no | `150000` | Per-request timeout. Rendered fetches can take up to 140 s. |
-| `UNBLOCKINGAPI_GOOGLE_TEMPLATE` | no | `kjellberg/google-search` | Template `google_search` parses results with. |
 
 ## Usage
 
@@ -110,11 +129,10 @@ Once connected, ask your agent things like:
 
 - *"Read https://example.com/pricing and summarise the plans."*
   → `unblock_fetch(url)` — then `render: true` if the page turned out to need JavaScript
-- *"What are the top Google results for 'best running shoes' in the US?"*
-  → `google_search(q: "best running shoes", location: "us")`
-- *"Which sites have a structured template?"* → `list_templates()`
 - *"Pull the company profile at this allabolag.se URL as JSON."*
-  → `unblock_fetch(url, template: "kjellberg/allabolag")`
+  → `find_templates(url)` → `unblock_fetch(url, template: "kjellberg/allabolag")`
+- *"Is there a template for this site?"* → `find_templates(url)`
+- *"What can this parse into JSON?"* → `find_templates(category: "real-estate")`
 
 ### `unblock_fetch` parameters
 
@@ -128,7 +146,7 @@ Once connected, ask your agent things like:
 | `wait_rules` | array | Render-only. `[{if: "#consent", then: "#results"}]` — first visible `if` wins and its `then` replaces `wait_for`. |
 | `detect_ms` | 0–25000 | Render-only. How long to probe `wait_rules` (default 800). |
 | `max_age` | 0–300 | Accept a cached copy this many seconds old. Hits return in ms and carry `cached: true`. |
-| `template` | string | Parse with a published template (`handle/name`) and return JSON. Forces that template's fetch settings. |
+| `template` | string | Parse with a published template (`handle/name`) and return JSON. Forces that template's fetch settings. Find one with `find_templates`. |
 | `max_chars` | integer | Cap on returned body (default 120000). Longer bodies are truncated with a note. |
 
 Responses start with a JSON metadata block (`job_id`, `status`, `http_response_code`,

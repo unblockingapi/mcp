@@ -2,7 +2,8 @@
 
 Give Cursor's agent a real browser. Once connected it reads live documentation,
 changelogs and pages that block automated tools, renders JavaScript when a page
-needs it, and runs Google searches — all through your own UnblockingAPI key.
+needs it, and returns structured JSON for any site a published template covers —
+all through your own UnblockingAPI key.
 
 **Before you start:** sign up at <https://unblockingapi.com> and copy your API key
 from the dashboard. New accounts get 500 free credits, no card required.
@@ -40,7 +41,7 @@ if you already have one.
 ```
 
 Cursor picks the file up immediately. Under *Settings → MCP* the server should
-show a green dot and three tools: `unblock_fetch`, `google_search`, `list_templates`.
+show a green dot and two tools: `unblock_fetch` and `find_templates`.
 
 ### Option C — ask the agent
 
@@ -68,8 +69,9 @@ alwaysApply: true
 When you need the contents of a URL, use the `unblock_fetch` tool from the
 unblockingapi MCP server instead of the built-in web tool. Call it with
 render=false first; if the page comes back thin or says JavaScript is required,
-call it again with render=true. Use `google_search` for Google results and
-`list_templates` to find sites that return structured JSON.
+call it again with render=true. Before parsing a recognisable site by hand, call
+`find_templates` with the URL — if a template covers it, pass its reference as
+`unblock_fetch`'s template argument and you get structured JSON instead of HTML.
 ```
 
 ---
@@ -78,10 +80,10 @@ call it again with render=true. Use `google_search` for Google results and
 
 Paste into the agent:
 
-> Use unblockingapi to fetch https://www.google.com/search?q=unblocking+api and list the top 10 results.
+> Use unblockingapi to fetch https://www.allabolag.se/foretag/ikea-of-sweden-ab/älmhult/industridesigners/2JYQ49RI5YFC1 as structured data.
 
-Google normally turns bots away; getting real results back is the proof the
-proxies and browser are in the loop.
+The agent should call `find_templates`, find the allabolag template, and come
+back with parsed company fields rather than HTML.
 
 ---
 
@@ -91,8 +93,8 @@ Ask naturally — the agent picks the tool:
 
 - *"Read the latest release notes at https://… and tell me if anything breaks our usage."*
 - *"Fetch this page from a US IP: https://…"* → `location: "us"`
-- *"What does Google show for 'vite 7 migration'?"* → `google_search`
-- *"Is there a template for this site?"* → `list_templates`, then `unblock_fetch` with `template:`
+- *"Is there a template for this site?"* → `find_templates(url)`
+- *"Pull this listing as structured data"* → `find_templates`, then `unblock_fetch` with `template:`
 
 Each successful fetch costs 1 credit; failures are free. Rendered fetches cost
 the same but take longer, which is why the agent tries plain first.

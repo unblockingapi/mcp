@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 — 2026-09-09
+
+Templates are the product surface; no site gets special treatment.
+
+### Breaking
+
+- **`google_search` removed.** A bespoke tool for one site does not scale to a catalogue meant to hold every site, and it pinned a template slug that went obsolete. Google is now reached the same way as everything else: build the URL, call `find_templates` with it, pass any match to `unblock_fetch`. The `UNBLOCKINGAPI_GOOGLE_TEMPLATE` environment variable is gone.
+- **`list_templates` is now `find_templates`**, and takes a `url` — "is there a template for the page I am about to fetch?" is the question that actually comes up. Keyword (`search`), `category` and `limit` are still there; output is capped at 25 by default and reports how many matched out of the whole catalogue, so a large catalogue does not flood the context.
+
+### Fixed
+
+- The plugin passed only `${user_config.api_key}` to the server, so a plugin installed without `--config api_key=…` started with no key and every fetch failed. It now also accepts an exported `UNBLOCKINGAPI_KEY`, and both setup guides show `--config` on the install line.
+- The `WebFetch` hook named a tool that does not exist (`mcp__plugin_unblockingapi_unblockingapi__unblock_fetch`); the real name is `mcp__unblockingapi__unblock_fetch`.
+- `docs/claude.md` was renamed to `docs/claude-setup.md`: on a case-insensitive filesystem it collided with `CLAUDE.md` and was loaded as agent instructions.
+
 ## 0.3.0 — 2026-09-09
 
 Rewritten against the current `/unblock` API.
@@ -13,13 +28,13 @@ Rewritten against the current `/unblock` API.
 
 ### Added
 
-- `list_templates` tool (free, keyless): browse published structured-data templates, filter by category or search term, with a ready-to-use example call for each.
+- A free, keyless template-discovery tool.
 - `template` and `max_age` (0–300 s response cache) parameters on `unblock_fetch`, and `max_chars` to cap how much body is returned to the model.
 - Server instructions and a "this page looks like it needs JavaScript" hint on thin plain fetches, so agents start with `render=false` and escalate only when needed.
 - Clear errors for every API gate: 401 (key), 402 (credits), 404 (unknown template), 422 (parameters), 429 (concurrency), 503 (warming up). `parse_error` and `cached` are surfaced in the result metadata.
-- **Claude Code plugin** (`.claude-plugin/`): `claude plugin marketplace add unblockingapi/mcp` then `claude plugin install unblockingapi@unblockingapi-plugins`. Prompts for the API key on install, bundles a skill that makes Claude use `unblock_fetch` instead of the built-in fetch, and a hook that redirects `WebFetch` calls to it.
+- **Claude Code plugin** (`.claude-plugin/`): `claude plugin marketplace add unblockingapi/mcp` then `claude plugin install unblockingapi@unblockingapi-plugins`. Bundles a skill that makes Claude use `unblock_fetch` instead of the built-in fetch, and a hook that redirects `WebFetch` calls to it.
 - `npm run smoke`: drives the built server over stdio (tool list, keyless catalogue, error paths; live fetches when `UNBLOCKINGAPI_KEY` is set).
-- Setup guides: [docs/claude.md](docs/claude.md) and [docs/cursor.md](docs/cursor.md).
+- Setup guides: [docs/claude-setup.md](docs/claude-setup.md) and [docs/cursor-setup.md](docs/cursor-setup.md).
 
 ### Changed
 

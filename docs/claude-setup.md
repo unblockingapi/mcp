@@ -1,9 +1,8 @@
 # UnblockingAPI for Claude
 
 Give Claude a real browser. Once connected, Claude reads bot-protected pages,
-renders JavaScript when a page needs it, runs Google searches and pulls
-structured JSON from sites with a published template — all through your own
-UnblockingAPI key.
+renders JavaScript when a page needs it, and pulls structured JSON from any site
+a published template covers — all through your own UnblockingAPI key.
 
 **Before you start:** sign up at <https://unblockingapi.com> and copy your API key
 from the dashboard. New accounts get 500 free credits, no card required.
@@ -20,31 +19,36 @@ Pick the path for how you use Claude:
 
 ## Claude Code: plugin
 
-The plugin is the full package: the MCP server, a prompt for your key on
-install, a skill that teaches Claude the fetch-then-render workflow, and a hook
-that redirects Claude's built-in `WebFetch` to `unblock_fetch`. From then on,
-every page Claude reads goes through UnblockingAPI.
+The plugin is the full package: the MCP server, your key stored securely, a
+skill that teaches Claude the fetch-then-render workflow, and a hook that
+redirects Claude's built-in `WebFetch` to `unblock_fetch`. From then on, every
+page Claude reads goes through UnblockingAPI.
 
-**1. Add the marketplace and install** (in your shell, or with `/plugin …` inside Claude Code):
+**1. Add the marketplace:**
 
 ```bash
 claude plugin marketplace add unblockingapi/mcp
 ```
 
+**2. Install it with your key** — pass `--config api_key=` in the same command:
+
 ```bash
-claude plugin install unblockingapi@unblockingapi-plugins
+claude plugin install unblockingapi@unblockingapi-plugins --config api_key=your_api_key_here
 ```
 
-**2. Paste your key** when prompted for *UnblockingAPI key*. It is stored in your
-OS keychain, never in a file in your repo.
+The key is stored the same way the interactive configure flow stores it, never
+in a file in your repo. **Installing without `--config` leaves the plugin with no
+key and every fetch fails** with "UNBLOCKINGAPI_KEY is not set"; run
+`/plugin configure` inside Claude Code to add it. The server also accepts an
+exported `UNBLOCKINGAPI_KEY` from your shell as a fallback.
 
 **3. Check it landed.** In a Claude Code session run `/mcp` — `unblockingapi`
-should show as connected with three tools. Then try:
+should show as connected with two tools. Then try:
 
-> Use unblockingapi to fetch https://www.google.com/search?q=unblocking+api and list the top 10 results.
+> Use unblockingapi to fetch https://www.allabolag.se/foretag/ikea-of-sweden-ab/älmhult/industridesigners/2JYQ49RI5YFC1 as structured data.
 
-Claude should answer with real results. Google normally turns bots away, so
-this is the proof the proxies and browser are in the loop.
+Claude should call `find_templates`, find the allabolag template, and come back
+with parsed company fields rather than HTML.
 
 **Updating:** `claude plugin update unblockingapi@unblockingapi-plugins`. The server
 itself is fetched with `npx …@latest`, so you get new tools without reinstalling.
@@ -66,8 +70,8 @@ itself is fetched with `npx …@latest`, so you get new tools without reinstalli
 ## Claude Code: MCP server only
 
 If you'd rather not install a plugin, register the server directly. You get the
-same three tools; Claude will usually pick `unblock_fetch` on its own because
-the server describes it well, but `WebFetch` stays available.
+same two tools; Claude will usually pick `unblock_fetch` on its own because the
+server describes it well, but `WebFetch` stays available.
 
 ```bash
 claude mcp add unblockingapi \
@@ -116,7 +120,7 @@ you edit it.
 ```
 
 **3. Quit and reopen Claude Desktop.** The tools icon in the chat box should
-list `unblock_fetch`, `google_search` and `list_templates`.
+list `unblock_fetch` and `find_templates`.
 
 Claude Desktop needs Node.js 18+ on your PATH for `npx`. If the server fails to
 start, install Node from <https://nodejs.org> and restart the app.
@@ -129,8 +133,8 @@ You don't have to name the tools. Ask naturally:
 
 - *"Read https://example.com/changelog and tell me what changed in the last release."*
 - *"Fetch this page from a German IP: https://…"* → `location: "de"`
-- *"What does Google show for 'mcp servers' in the UK?"* → `google_search`
-- *"Is there a template for allabolag.se?"* → `list_templates`, then `unblock_fetch` with `template:`
+- *"Is there a template for this site?"* → `find_templates(url)`
+- *"Pull this listing as structured data"* → `find_templates`, then `unblock_fetch` with `template:`
 
 Each successful fetch costs 1 credit; failures are free. Rendered fetches cost
 the same as plain ones but take longer, which is why Claude tries plain first.
@@ -139,7 +143,7 @@ the same as plain ones but take longer, which is why Claude tries plain first.
 
 | Symptom | Fix |
 | --- | --- |
-| "UNBLOCKINGAPI_KEY is not set" | Plugin: run `claude plugin uninstall …` then install again and paste the key. Manual: check the `env` block / `-e` flag. |
+| "UNBLOCKINGAPI_KEY is not set" | The plugin was installed without a key. Run `/plugin configure` in Claude Code, or reinstall with `--config api_key=…`. Manual installs: check the `env` block / `-e` flag. |
 | "Invalid or missing API key (HTTP 401)" | The key is wrong or was revoked. Copy it again from the dashboard. |
 | "Out of credits (HTTP 402)" | Top up at <https://unblockingapi.com/billing>. |
 | "Too many requests in flight (HTTP 429)" | You hit your plan's concurrency cap. Claude will retry once another request finishes. |

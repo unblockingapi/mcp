@@ -33,7 +33,7 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
   check("server instructions present", !!instructions && instructions.includes("render=false"));
   const { tools } = await c.listTools();
   const names = tools.map((t) => t.name).sort();
-  check("tools", JSON.stringify(names) === JSON.stringify(["google_search", "list_templates", "unblock_fetch"]), names.join(","));
+  check("tools", JSON.stringify(names) === JSON.stringify(["find_templates", "unblock_fetch"]), names.join(","));
   const fetchTool = tools.find((t) => t.name === "unblock_fetch");
   const props = Object.keys(fetchTool.inputSchema.properties).sort();
   check(
@@ -50,10 +50,12 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
   const bad = await c.callTool({ name: "unblock_fetch", arguments: { url: "not a url" } });
   check("invalid url rejected by schema", bad.isError === true, text(bad).slice(0, 80));
 
-  const t = await c.callTool({ name: "list_templates", arguments: {} });
-  check("list_templates (keyless)", !t.isError && text(t).includes("kjellberg/google-search"), text(t).split("\n")[0]);
-  const ts = await c.callTool({ name: "list_templates", arguments: { search: "google" } });
-  check("list_templates search filter", !ts.isError && text(ts).startsWith("1 template"), text(ts).split("\n")[0]);
+  const t = await c.callTool({ name: "find_templates", arguments: {} });
+  check("find_templates (keyless)", !t.isError && text(t).includes("kjellberg/google-search"), text(t).split("\n")[0]);
+  const ts = await c.callTool({ name: "find_templates", arguments: { url: "https://www.allabolag.se/foretag/ikea-of-sweden-ab/x/y/2JYQ49RI5YFC1" } });
+  check("find_templates matches a URL", !ts.isError && text(ts).includes("kjellberg/allabolag"), text(ts).split("\n")[0]);
+  const tm = await c.callTool({ name: "find_templates", arguments: { url: "https://example.com/nothing" } });
+  check("find_templates reports no match", !tm.isError && text(tm).includes("No template covers"), text(tm).split("\n")[0]);
   await c.close();
 }
 
@@ -92,14 +94,6 @@ if (key) {
     !r4.isError && m4.includes('"response_format": "json"') && m4.includes('"api_name": "marbella-living-search"') && m4.includes('"results"'),
     m4.slice(0, 160).replace(/\n/g, " "),
   );
-
-  if (process.env.SMOKE_GOOGLE) {
-    const g = await c.callTool({ name: "google_search", arguments: { q: "unblocking api" } });
-    const mg = text(g);
-    check("live google_search structured (opt-in)", !g.isError && mg.includes('"response_format": "json"') && mg.includes('"results"'), mg.slice(0, 160).replace(/\n/g, " "));
-  } else {
-    console.log("SKIP  google_search (needs the render fleet; set SMOKE_GOOGLE=1 to include it)");
-  }
 
   const r5 = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com/nope", template: "nobody/does-not-exist" } });
   check("live unknown template → 404 message", r5.isError && text(r5).includes("404"), text(r5).slice(0, 100));

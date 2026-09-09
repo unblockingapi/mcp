@@ -1,6 +1,6 @@
 ---
 name: web-fetching
-description: Use whenever you need to read a web page, URL, article, documentation page, search result, product page or any live website content. Fetches through UnblockingAPI (unblock_fetch / google_search / list_templates) instead of the built-in WebFetch, starting with a plain fetch and rendering with a real browser only when the page needs JavaScript.
+description: Use whenever you need to read a web page, URL, article, documentation page, search result, product page or any live website content. Fetches through UnblockingAPI (unblock_fetch, find_templates) instead of the built-in WebFetch, starting with a plain fetch and rendering with a real browser only when the page needs JavaScript, and returning structured JSON when a template covers the site.
 ---
 
 # Reading the web with UnblockingAPI
@@ -27,15 +27,28 @@ geo-restricted. `WebFetch` is denied by a plugin hook anyway.
 5. **Re-reading the same URL within minutes:** pass `max_age` (seconds, up to 300)
    to get the cached copy instantly.
 
-## Search and structured data
+## Structured JSON instead of HTML
 
-- **Google results:** `google_search(q, location?, language?, start?)` returns JSON
-  (`results[{position,title,description,url}]`, `related_searches`). Use it rather
-  than fetching a Google URL by hand.
-- **Sites with a template:** `list_templates(search?)` shows published parsers
-  (property portals, business directories, search engines, …) with an example
-  call each. `unblock_fetch(url, template: "<reference>")` then returns JSON
-  instead of HTML.
+A template parses a specific site into named fields, so you get data instead of
+markup to sift through. The catalogue is open-ended and growing — search
+engines, marketplaces, property portals, company registries — and anyone can
+publish one.
+
+**Before you scrape a recognisable site by hand, check for a template:**
+
+1. `find_templates(url: "<the url you are about to fetch>")` — returns any
+   template built for that site, with the fields it produces.
+2. If one matches: `unblock_fetch(url, template: "<reference>")` returns JSON.
+3. If none does: fetch normally and parse the HTML yourself. You can build a
+   template for the site at https://editor.unblockingapi.com so the next fetch
+   is structured.
+
+`find_templates` also takes `search` (keyword) and `category`, and is free —
+it charges no credit, so checking costs you nothing but a moment.
+
+If a template's parser fails because the site changed, you get the raw HTML back
+with `parse_error: true` in the metadata rather than an error. Parse it yourself
+in that case.
 
 ## Reading the result
 

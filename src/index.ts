@@ -18,18 +18,12 @@ import {
   UnblockingApiClient,
   UnblockingApiError,
   type ApiResult,
+  type TemplateCatalogue,
   type TemplateEntry,
   type UnblockParams,
 } from "./client.js";
 
-export const VERSION = "0.3.0";
-
-/**
- * The published template that parses a Google results page. Official (bare-slug)
- * templates do not exist yet, so this names the community one. Override with
- * UNBLOCKINGAPI_GOOGLE_TEMPLATE if you fork it in the editor.
- */
-const GOOGLE_TEMPLATE = process.env.UNBLOCKINGAPI_GOOGLE_TEMPLATE || "kjellberg/google-search";
+export const VERSION = "0.4.0";
 
 /** Default cap on the body returned to the model; pages are often 100–500 KB. */
 const DEFAULT_MAX_CHARS = 120_000;
@@ -42,6 +36,7 @@ const DEFAULT_MAX_CHARS = 120_000;
 function resolveApiKey(): string {
   for (const candidate of [
     process.env.UNBLOCKINGAPI_KEY,
+    process.env.UNBLOCKINGAPI_KEY_ENV,
     process.env.CLAUDE_PLUGIN_OPTION_API_KEY,
     process.env.CLAUDE_PLUGIN_OPTION_api_key,
   ]) {
@@ -62,7 +57,7 @@ const client = new UnblockingApiClient({ apiKey, baseUrl, timeoutMs });
 const INSTRUCTIONS = `UnblockingAPI gives you a real browser and rotating residential proxies for reading the web.
 Whenever you need the contents of a URL, use unblock_fetch instead of a built-in fetch tool: it reaches pages that block bots, CAPTCHAs and geo-restrictions.
 Workflow: call unblock_fetch with render=false first (fast, cheap). If the result is thin, empty, or says JavaScript is required, call it again with render=true. Only add wait_for/settle_ms when a rendered page still lacks the content you need.
-For Google results use google_search. For sites with a published template (see list_templates) pass template=<name> to get structured JSON instead of HTML.
+Templates turn a page into structured JSON instead of HTML. There is one for a growing number of sites — search engines, marketplaces, directories, portals — and anyone can publish more. Before scraping a well-known site by hand, call find_templates with the URL you are about to fetch; if one matches, pass its reference as unblock_fetch's template argument and you get parsed fields instead of markup to sift through.
 Every successful fetch costs 1 credit; failures are free. Pass max_age (seconds) when re-reading the same URL within a few minutes.`;
 
 export const server = new McpServer({ name: "unblockingapi", version: VERSION }, { instructions: INSTRUCTIONS });
@@ -157,6 +152,44 @@ async function safe(fn: () => Promise<ToolResult>): Promise<ToolResult> {
   }
 }
 
+/**
+ * Does this template cover that URL? Templates declare the host and path prefix
+ * they were built for, so matching is a host comparison (www- and
+ * subdomain-insensitive) plus a path-prefix test. `**` is the catalogue's
+ * wildcard suffix and matches any deeper path.
+ */
+export function templateMatchesUrl(template: TemplateEntry, url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
+  const templateHost = (template.host ?? "").replace(/^www\./i, "").toLowerCase();
+  if (!templateHost) return false;
+  if (host !== templateHost && !host.endsWith(`.${templateHost}`)) return false;
+
+  const path = (template.path ?? "").replace(/\*+$/, "");
+  return !path || path === "/" || parsed.pathname.startsWith(path);
+}
+
+/**
+ * The catalogue is public and changes slowly; one fetch per 5 minutes keeps
+ * repeated discovery calls off the wire without going stale in a session.
+ */
+const CATALOGUE_TTL_MS = 5 * 60 * 1000;
+let catalogueCache: { at: number; catalogue: TemplateCatalogue } | null = null;
+
+async function currentCatalogue(): Promise<TemplateCatalogue> {
+  if (catalogueCache && Date.now() - catalogueCache.at < CATALOGUE_TTL_MS) {
+    return catalogueCache.catalogue;
+  }
+  const catalogue = await client.templates();
+  catalogueCache = { at: Date.now(), catalogue };
+  return catalogue;
+}
+
 const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
 // --- Shared parameter schemas -----------------------------------------------
@@ -202,7 +235,8 @@ server.registerTool(
       "with rotating residential proxies. Returns clean HTML (scripts, styles and SVGs already " +
       "stripped). Start with render=false; set render=true only when the response is missing " +
       "content because the page needs JavaScript. Pass a template name to get structured JSON " +
-      "instead of HTML (see list_templates). Costs 1 credit per successful fetch; failures are free.",
+      "instead of HTML — call find_templates with the url first to see whether one exists. " +
+      "Costs 1 credit per successful fetch; failures are free.",
     inputSchema: {
       url: z.string().url().describe("The HTTP/HTTPS URL to fetch. Media and binary files are rejected."),
       render: z
@@ -254,8 +288,9 @@ server.registerTool(
         .regex(/^(?:[a-z0-9][a-z0-9-]{1,48}[a-z0-9]\/)?[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/, "template reference like 'handle/name'")
         .optional()
         .describe(
-          "Parse the page with a published template and return JSON instead of HTML, e.g. " +
-            "'kjellberg/google-search'. The template forces its own render/wait settings. Use list_templates to discover names.",
+          "Parse the page with a published template and return JSON instead of HTML. Takes a " +
+            "template reference like 'handle/name' — call find_templates with this url first to see " +
+            "whether one covers the site. The template forces its own render and wait settings.",
         ),
       max_chars: maxCharsSchema,
     },
@@ -265,65 +300,7 @@ server.registerTool(
     safe(async () => toToolResult(await client.unblock(params as UnblockParams), max_chars)),
 );
 
-// --- Tool: google_search -----------------------------------------------------
-server.registerTool(
-  "google_search",
-  {
-    title: "Google search (structured results)",
-    description:
-      "Run a Google search through UnblockingAPI and get structured JSON: the query, organic " +
-      "results (position, title, description, url) and related searches. Uses a browser render " +
-      `plus the '${GOOGLE_TEMPLATE}' template; if the template is unavailable the raw results ` +
-      "page HTML is returned instead. Costs 1 credit per search.",
-    inputSchema: {
-      q: z.string().min(1).describe("The search query."),
-      location: z
-        .string()
-        .regex(/^[a-zA-Z]{2}$/, "2-letter ISO country code")
-        .optional()
-        .describe("2-letter country code: proxies from that country and sets Google's gl= parameter (e.g. 'us', 'gb', 'se')."),
-      language: z
-        .string()
-        .regex(/^[a-zA-Z]{2}(?:-[a-zA-Z]{2})?$/, "language code like 'en' or 'pt-BR'")
-        .optional()
-        .describe("Interface language for Google's hl= parameter (e.g. 'en', 'de')."),
-      start: z
-        .number()
-        .int()
-        .min(0)
-        .optional()
-        .describe("Result offset for pagination (0 = page 1, 10 = page 2, …)."),
-      max_age: maxAgeSchema,
-    },
-    annotations: readOnly,
-  },
-  async ({ q, location, language, start, max_age }) =>
-    safe(async () => {
-      const url = new URL("https://www.google.com/search");
-      url.searchParams.set("q", q);
-      if (location) url.searchParams.set("gl", location.toLowerCase());
-      if (language) url.searchParams.set("hl", language);
-      if (start) url.searchParams.set("start", String(start));
-
-      const base: UnblockParams = { url: url.toString(), location: location?.toLowerCase(), max_age };
-      try {
-        return toToolResult(await client.unblock({ ...base, template: GOOGLE_TEMPLATE }));
-      } catch (err) {
-        // The community template was renamed or unpublished: still deliver the page.
-        if (err instanceof UnblockingApiError && err.status === 404) {
-          const result = await client.unblock({ ...base, render: true });
-          const out = toToolResult(result);
-          out.content[0].text =
-            `Note: template '${GOOGLE_TEMPLATE}' was not found, returning the raw results page instead.\n\n` +
-            out.content[0].text;
-          return out;
-        }
-        throw err;
-      }
-    }),
-);
-
-// --- Tool: list_templates ----------------------------------------------------
+// --- Tool: find_templates ----------------------------------------------------
 function formatTemplate(t: TemplateEntry): string {
   const where = [t.host, t.path].filter(Boolean).join("");
   const how = [t.render ? "rendered" : "plain HTTP", t.location ? `from ${t.location.toUpperCase()}` : null]
@@ -336,31 +313,49 @@ function formatTemplate(t: TemplateEntry): string {
   ].join("\n");
 }
 
+/** Enough to choose from without flooding the context on a large catalogue. */
+const DEFAULT_TEMPLATE_LIMIT = 25;
+
 server.registerTool(
-  "list_templates",
+  "find_templates",
   {
-    title: "List structured-data templates",
+    title: "Find a structured-data template",
     description:
-      "List the published UnblockingAPI templates that parse specific sites into structured JSON " +
-      "(search engines, property portals, business directories, …). Each entry shows the site it " +
-      "is built for, the fields it returns, and an example call. Use a template's reference as the " +
-      "'template' argument of unblock_fetch. Free — no credit is charged.",
+      "Find published templates that parse a site into structured JSON instead of HTML. Pass the " +
+      "url you are about to fetch to see whether one already covers it — do this before writing " +
+      "your own extraction for a well-known site. Also searches by keyword or category. Each " +
+      "result shows the fields it returns and an example call; pass its reference as " +
+      "unblock_fetch's template argument. Free — no credit is charged.",
     inputSchema: {
-      category: z
+      url: z
         .string()
         .optional()
-        .describe("Filter by category slug, e.g. 'search-results', 'real-estate', 'business-directories'."),
+        .describe("A URL you intend to fetch. Returns the templates built for that site, if any."),
       search: z
         .string()
         .optional()
-        .describe("Case-insensitive match against the template's name, reference, host or description."),
+        .describe("Keyword matched against a template's name, reference, host and description (e.g. 'property', 'company')."),
+      category: z
+        .string()
+        .optional()
+        .describe("Category slug, e.g. 'search-results', 'real-estate', 'business-directories'. Omit all filters to see the categories."),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe(`Maximum templates to return (default ${DEFAULT_TEMPLATE_LIMIT}).`),
     },
     annotations: { ...readOnly, openWorldHint: false },
   },
-  async ({ category, search }) =>
+  async ({ url, search, category, limit }) =>
     safe(async () => {
-      const catalogue = await client.templates();
+      const catalogue = await currentCatalogue();
+      const total = catalogue.templates.length;
       let templates = catalogue.templates;
+
+      if (url) templates = templates.filter((t) => templateMatchesUrl(t, url));
       if (category) templates = templates.filter((t) => t.category === category);
       if (search) {
         const needle = search.toLowerCase();
@@ -369,16 +364,34 @@ server.registerTool(
         );
       }
 
+      const matched = templates.length;
+      const shown = templates.slice(0, limit ?? DEFAULT_TEMPLATE_LIMIT);
       const categories = catalogue.categories
         .filter((c) => c.templates_count > 0)
         .map((c) => `${c.slug} (${c.templates_count})`)
         .join(", ");
 
-      const text = templates.length
-        ? `${templates.length} template(s):\n\n${templates.map(formatTemplate).join("\n\n")}\n\nCategories: ${categories}\n\nAnyone can build more at https://editor.unblockingapi.com`
-        : `No templates match. Categories with templates: ${categories}`;
+      if (!matched) {
+        const miss = url
+          ? `No template covers ${url}. Fetch it with unblock_fetch and parse the HTML yourself, ` +
+            `or build a template for it at https://editor.unblockingapi.com`
+          : "Nothing matched.";
+        return { content: [{ type: "text", text: `${miss}\n\nCategories: ${categories}` }] };
+      }
 
-      return { content: [{ type: "text", text }] };
+      const header =
+        matched === shown.length
+          ? `${matched} of ${total} template(s):`
+          : `${matched} of ${total} template(s), showing ${shown.length} — narrow with search/category or raise limit:`;
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `${header}\n\n${shown.map(formatTemplate).join("\n\n")}\n\nCategories: ${categories}\n\nAnyone can publish more at https://editor.unblockingapi.com`,
+          },
+        ],
+      };
     }),
 );
 
