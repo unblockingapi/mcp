@@ -40,9 +40,11 @@ Typing the install directly does the same thing:
 /plugin install unblockingapi@unblockingapi-plugins
 ```
 
-**3. Add your key — this step is not optional and you are not prompted for it.**
-The install succeeds without a key and only prints a one-line warning, so it is
-easy to miss. Run:
+**3. Add your key.** Claude Code asks for a plugin's settings when the plugin is
+*enabled*, so you may see an *UnblockingAPI key* prompt right after installing —
+fill it in and you are done. If you don't see one, or you dismissed it, the
+install still succeeded with no key and only printed a one-line warning. Set it
+explicitly with:
 
 ```
 /plugin configure unblockingapi@unblockingapi-plugins
@@ -80,9 +82,10 @@ unset — use `/plugin configure` instead, or uninstall first:
 claude plugin uninstall unblockingapi@unblockingapi-plugins
 ```
 
-**Updating:** pull a new plugin version with
-`claude plugin marketplace update unblockingapi-plugins`. The MCP server itself
-is fetched with `npx …@latest`, so new tools arrive without reinstalling.
+**Updating:** third-party marketplaces do not auto-update, so pull new plugin
+versions yourself with `claude plugin marketplace update unblockingapi-plugins`,
+or turn on auto-update under `/plugin` → *Marketplaces*. The MCP server itself is
+fetched with `npx …@latest`, so new tools arrive without reinstalling.
 
 **Removing:** `claude plugin uninstall unblockingapi@unblockingapi-plugins`.
 
