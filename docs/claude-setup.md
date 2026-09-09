@@ -40,7 +40,11 @@ Typing the install directly does the same thing:
 /plugin install unblockingapi@unblockingapi-plugins
 ```
 
-**3. Add your key.** Claude Code asks for a plugin's settings when the plugin is
+**3. Add your key — or just run the guided setup.** If you would rather be walked
+through it, type `/unblockingapi:setup` and Claude will work out what is missing,
+tell you exactly what to do, and confirm when it works.
+
+Otherwise: Claude Code asks for a plugin's settings when the plugin is
 *enabled*, so you may see an *UnblockingAPI key* prompt right after installing —
 fill it in and you are done. If you don't see one, or you dismissed it, the
 install still succeeded with no key and only printed a one-line warning. Set it
@@ -184,4 +188,5 @@ the same as plain ones but take longer, which is why Claude tries plain first.
 | "Out of credits (HTTP 402)" | Top up at <https://unblockingapi.com/billing>. |
 | "Too many requests in flight (HTTP 429)" | You hit your plan's concurrency cap. Claude will retry once another request finishes. |
 | Tools don't appear in Claude Desktop | The config file is not valid JSON, or the app was not restarted. |
+| Not sure what is wrong | Run `/unblockingapi:setup` — it diagnoses the key, the connection and your credits, and tells you the one thing to fix. |
 | A rendered fetch times out | Lower `settle_ms`, or wait on a specific selector with `wait_for`. The hard ceiling is 140 s. |

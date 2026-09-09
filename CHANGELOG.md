@@ -11,12 +11,14 @@ Templates are the product surface; no site gets special treatment.
 
 ### Added
 
+- `/unblockingapi:setup` — a guided setup command that works out whether the MCP server is connected, whether a key is stored and whether it is valid, then gives the user the one step they actually need and confirms it worked.
 - The "no key" error now says what to do where you are: inside the plugin it names `/plugin configure unblockingapi@unblockingapi-plugins`, elsewhere it points at `UNBLOCKINGAPI_KEY`. Installing a plugin never prompts for config, so this message is the only thing standing between a keyless install and a confused user.
 
 ### Fixed
 
 - The plugin passed only `${user_config.api_key}` to the server, so a plugin installed without `--config api_key=…` started with no key and every fetch failed. It now also accepts an exported `UNBLOCKINGAPI_KEY`, and both setup guides show `--config` on the install line.
 - The `WebFetch` hook named a tool that does not exist (`mcp__plugin_unblockingapi_unblockingapi__unblock_fetch`); the real name is `mcp__unblockingapi__unblock_fetch`.
+- The bundled skill is now `unblock` (was `web-fetching`).
 - `docs/claude.md` was renamed to `docs/claude-setup.md`: on a case-insensitive filesystem it collided with `CLAUDE.md` and was loaded as agent instructions.
 
 ## 0.3.0 — 2026-09-09

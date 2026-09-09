@@ -55,7 +55,9 @@ In Claude Code, three lines:
 ```
 
 **The third line matters.** Installing does not prompt for your key and succeeds
-without one, so skipping it leaves every fetch failing. From a terminal you can
+without one, so skipping it leaves every fetch failing. New to this? Run
+`/unblockingapi:setup` instead and Claude walks you through it, then checks that
+it works. From a terminal you can
 do it in one shot instead, but `--config` only applies on a fresh install:
 
 ```bash
@@ -173,8 +175,8 @@ npm run smoke      # drive the built server over stdio (add UNBLOCKINGAPI_KEY fo
 ```
 
 Repository layout: `src/` (server + API client), `.claude-plugin/` (Claude Code
-plugin + marketplace manifests), `hooks/` and `skills/` (plugin behaviour),
-`docs/` (setup guides).
+plugin + marketplace manifests), `hooks/`, `skills/` and `commands/` (plugin
+behaviour), `docs/` (setup guides).
 
 ## License
 

@@ -1,5 +1,5 @@
 ---
-name: web-fetching
+name: unblock
 description: Use whenever you need to read a web page, URL, article, documentation page, search result, product page or any live website content. Fetches through UnblockingAPI (unblock_fetch, find_templates) instead of the built-in WebFetch, starting with a plain fetch and rendering with a real browser only when the page needs JavaScript, and returning structured JSON when a template covers the site.
 ---
 
