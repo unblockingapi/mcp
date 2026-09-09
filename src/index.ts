@@ -24,7 +24,7 @@ import {
   type UnblockParams,
 } from "./client.js";
 
-export const VERSION = "0.4.0";
+export const VERSION = "0.4.1";
 
 /** Default cap on the body returned to the model; pages are often 100–500 KB. */
 const DEFAULT_MAX_CHARS = 120_000;

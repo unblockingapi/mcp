@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.1 — 2026-09-09
+
+Onboarding. Everything here landed after 0.4.0 was published to npm.
+
+### Added
+
+- **`/unblockingapi:setup`** — a guided setup command. It checks what is actually wrong (server not connected, no key stored, key invalid, out of credits) by calling the free template lookup and then a fetch, gives the user the one step that applies, and confirms it worked. It also warns that the key is read at server start, so a key saved mid-session needs a reconnect from `/mcp`.
+- The "no key" error now says what to do *where you are*: inside the plugin it names `/plugin configure unblockingapi@unblockingapi-plugins`; elsewhere it points at `UNBLOCKINGAPI_KEY`. Installing a plugin never prompts for config, so this message is often the only thing standing between a keyless install and a stuck user.
+
+### Changed
+
+- The bundled skill is now **`unblock`** (was `web-fetching`), so it reads `unblockingapi:unblock`.
+- README and the Claude guide lead with the three-line UI install and mark the configure step as mandatory, with the caveat that `--config` only applies on a *fresh* install and is silently ignored when the plugin is already installed.
+
+### Known issues
+
+- The keyless `/demo` endpoint returns 502 for every valid URL in production (an invalid URL still returns its normal 422, so the route itself is alive). Until that is fixed, the plugin cannot offer a no-key trial mode.
+
 ## 0.4.0 — 2026-09-09
 
 Templates are the product surface; no site gets special treatment.
@@ -9,16 +27,10 @@ Templates are the product surface; no site gets special treatment.
 - **`google_search` removed.** A bespoke tool for one site does not scale to a catalogue meant to hold every site, and it pinned a template slug that went obsolete. Google is now reached the same way as everything else: build the URL, call `find_templates` with it, pass any match to `unblock_fetch`. The `UNBLOCKINGAPI_GOOGLE_TEMPLATE` environment variable is gone.
 - **`list_templates` is now `find_templates`**, and takes a `url` — "is there a template for the page I am about to fetch?" is the question that actually comes up. Keyword (`search`), `category` and `limit` are still there; output is capped at 25 by default and reports how many matched out of the whole catalogue, so a large catalogue does not flood the context.
 
-### Added
-
-- `/unblockingapi:setup` — a guided setup command that works out whether the MCP server is connected, whether a key is stored and whether it is valid, then gives the user the one step they actually need and confirms it worked.
-- The "no key" error now says what to do where you are: inside the plugin it names `/plugin configure unblockingapi@unblockingapi-plugins`, elsewhere it points at `UNBLOCKINGAPI_KEY`. Installing a plugin never prompts for config, so this message is the only thing standing between a keyless install and a confused user.
-
 ### Fixed
 
-- The plugin passed only `${user_config.api_key}` to the server, so a plugin installed without `--config api_key=…` started with no key and every fetch failed. It now also accepts an exported `UNBLOCKINGAPI_KEY`, and both setup guides show `--config` on the install line.
+- The plugin passed only `${user_config.api_key}` to the server, so a plugin installed without `--config api_key=…` started with no key and every fetch failed. It now also accepts an exported `UNBLOCKINGAPI_KEY`.
 - The `WebFetch` hook named a tool that does not exist (`mcp__plugin_unblockingapi_unblockingapi__unblock_fetch`); the real name is `mcp__unblockingapi__unblock_fetch`.
-- The bundled skill is now `unblock` (was `web-fetching`).
 - `docs/claude.md` was renamed to `docs/claude-setup.md`: on a case-insensitive filesystem it collided with `CLAUDE.md` and was loaded as agent instructions.
 
 ## 0.3.0 — 2026-09-09

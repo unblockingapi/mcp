@@ -1,7 +1,7 @@
 {
   "name": "@unblockingapi/mcp",
-  "version": "0.4.0",
-  "description": "Official MCP server for UnblockingAPI — web unblocking + SERP for AI agents",
+  "version": "0.4.1",
+  "description": "Official MCP server for UnblockingAPI \u2014 web unblocking + SERP for AI agents",
   "type": "module",
   "bin": {
     "unblockingapi-mcp": "dist/index.js"
