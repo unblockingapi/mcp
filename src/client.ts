@@ -15,6 +15,20 @@ const DEFAULT_BASE_URL = "https://api.unblockingapi.com";
 // RenderCrawler::REQUEST_TIMEOUT is 140s server-side; a plain fetch is 30s.
 const DEFAULT_TIMEOUT_MS = 150_000;
 
+/**
+ * "No key" means something different depending on how the server was launched,
+ * and the wrong instruction here is the difference between a 10-second fix and
+ * a support ticket. Inside the Claude Code plugin the key belongs to the
+ * plugin's own config, NOT to an env var the user can usefully edit — the
+ * plugin sets CLAUDE_PLUGIN_ROOT, so use it to tell them where to actually go.
+ */
+export function missingKeyMessage(env: NodeJS.ProcessEnv = process.env): string {
+  const base = "No UnblockingAPI key is configured. Get one at https://unblockingapi.com (500 free credits).";
+  return env.CLAUDE_PLUGIN_ROOT
+    ? `${base} This plugin was installed without a key: run "/plugin configure unblockingapi@unblockingapi-plugins" in Claude Code and paste it.`
+    : `${base} Set UNBLOCKINGAPI_KEY in the server's environment.`;
+}
+
 export class UnblockingApiError extends Error {
   constructor(
     message: string,
@@ -122,10 +136,7 @@ export class UnblockingApiClient {
   /** POST /unblock with a JSON body; undefined/null/empty values are dropped. */
   async unblock(params: UnblockParams): Promise<ApiResult> {
     if (!this.apiKey) {
-      throw new UnblockingApiError(
-        "UNBLOCKINGAPI_KEY is not set. Get a key at https://unblockingapi.com and put it in the server's environment.",
-        401,
-      );
+      throw new UnblockingApiError(missingKeyMessage(), 401);
     }
 
     const body: Record<string, unknown> = {};
@@ -163,7 +174,7 @@ export class UnblockingApiClient {
           );
         case 404:
           throw new UnblockingApiError(
-            `${msg ?? "Unknown template"} (HTTP 404). Use list_templates to see what is available.`,
+            `${msg ?? "Unknown template"} (HTTP 404). Use find_templates to see what is available.`,
             404,
             json,
           );

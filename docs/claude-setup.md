@@ -11,7 +11,7 @@ Pick the path for how you use Claude:
 
 | You use… | Do this | Time |
 | --- | --- | --- |
-| **Claude Code** (terminal, VS Code, desktop app) | [Install the plugin](#claude-code-plugin) — recommended | 1 min |
+| **Claude Code** (terminal, VS Code, desktop app) | [Install the plugin from the UI](#install-it-from-the-claude-code-ui) — recommended | 1 min |
 | Claude Code, but you only want the tools | [`claude mcp add`](#claude-code-mcp-server-only) | 1 min |
 | **Claude Desktop** (chat app) | [Edit the config file](#claude-desktop) | 2 min |
 
@@ -24,34 +24,65 @@ skill that teaches Claude the fetch-then-render workflow, and a hook that
 redirects Claude's built-in `WebFetch` to `unblock_fetch`. From then on, every
 page Claude reads goes through UnblockingAPI.
 
-**1. Add the marketplace:**
+### Install it from the Claude Code UI
+
+**1. Add the marketplace.** Type this in any Claude Code session:
+
+```
+/plugin marketplace add unblockingapi/mcp
+```
+
+**2. Install the plugin.** Open the plugin browser with `/plugin`, pick
+*unblockingapi* under the **unblockingapi-plugins** marketplace and install it.
+Typing the install directly does the same thing:
+
+```
+/plugin install unblockingapi@unblockingapi-plugins
+```
+
+**3. Add your key — this step is not optional and you are not prompted for it.**
+The install succeeds without a key and only prints a one-line warning, so it is
+easy to miss. Run:
+
+```
+/plugin configure unblockingapi@unblockingapi-plugins
+```
+
+and paste your key into *UnblockingAPI key*. It is stored securely, never in a
+file in your repo.
+
+**4. Check it landed.** Run `/mcp` — `unblockingapi` should show as connected
+with two tools. Then try:
+
+> Use unblockingapi to fetch https://www.allabolag.se/foretag/ikea-of-sweden-ab/älmhult/industridesigners/2JYQ49RI5YFC1 as structured data.
+
+Claude should call `find_templates`, find the allabolag template, and come back
+with parsed company fields rather than HTML. If instead you get "No
+UnblockingAPI key is configured", step 3 did not take — run it again.
+
+### Install it from the terminal
+
+Same thing in one shot, with the key inline:
 
 ```bash
 claude plugin marketplace add unblockingapi/mcp
 ```
 
-**2. Install it with your key** — pass `--config api_key=` in the same command:
-
 ```bash
 claude plugin install unblockingapi@unblockingapi-plugins --config api_key=your_api_key_here
 ```
 
-The key is stored the same way the interactive configure flow stores it, never
-in a file in your repo. **Installing without `--config` leaves the plugin with no
-key and every fetch fails** with "UNBLOCKINGAPI_KEY is not set"; run
-`/plugin configure` inside Claude Code to add it. The server also accepts an
-exported `UNBLOCKINGAPI_KEY` from your shell as a fallback.
+`--config` only applies on a **fresh** install. If the plugin is already
+installed, the command reports "already installed" and silently leaves the key
+unset — use `/plugin configure` instead, or uninstall first:
 
-**3. Check it landed.** In a Claude Code session run `/mcp` — `unblockingapi`
-should show as connected with two tools. Then try:
+```bash
+claude plugin uninstall unblockingapi@unblockingapi-plugins
+```
 
-> Use unblockingapi to fetch https://www.allabolag.se/foretag/ikea-of-sweden-ab/älmhult/industridesigners/2JYQ49RI5YFC1 as structured data.
-
-Claude should call `find_templates`, find the allabolag template, and come back
-with parsed company fields rather than HTML.
-
-**Updating:** `claude plugin update unblockingapi@unblockingapi-plugins`. The server
-itself is fetched with `npx …@latest`, so you get new tools without reinstalling.
+**Updating:** pull a new plugin version with
+`claude plugin marketplace update unblockingapi-plugins`. The MCP server itself
+is fetched with `npx …@latest`, so new tools arrive without reinstalling.
 
 **Removing:** `claude plugin uninstall unblockingapi@unblockingapi-plugins`.
 
@@ -143,7 +174,9 @@ the same as plain ones but take longer, which is why Claude tries plain first.
 
 | Symptom | Fix |
 | --- | --- |
-| "UNBLOCKINGAPI_KEY is not set" | The plugin was installed without a key. Run `/plugin configure` in Claude Code, or reinstall with `--config api_key=…`. Manual installs: check the `env` block / `-e` flag. |
+| "No UnblockingAPI key is configured" | The plugin was installed without a key. Run `/plugin configure unblockingapi@unblockingapi-plugins`. Manual installs: check the `env` block / `-e` flag. |
+| `/plugin configure` says the plugin is unknown | The marketplace name is part of the id — use the full `unblockingapi@unblockingapi-plugins`. |
+| `--config` had no effect | It only applies on a fresh install. Uninstall first, or use `/plugin configure`. |
 | "Invalid or missing API key (HTTP 401)" | The key is wrong or was revoked. Copy it again from the dashboard. |
 | "Out of credits (HTTP 402)" | Top up at <https://unblockingapi.com/billing>. |
 | "Too many requests in flight (HTTP 429)" | You hit your plan's concurrency cap. Claude will retry once another request finishes. |

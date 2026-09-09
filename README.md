@@ -46,17 +46,23 @@ Claude Desktop) · **[Cursor](docs/cursor-setup.md)** · other clients below.
 The plugin bundles the MCP server, stores your key, and makes Claude use
 `unblock_fetch` instead of its built-in web fetch.
 
-```bash
-claude plugin marketplace add unblockingapi/mcp
+In Claude Code, three lines:
+
 ```
+/plugin marketplace add unblockingapi/mcp
+/plugin install unblockingapi@unblockingapi-plugins
+/plugin configure unblockingapi@unblockingapi-plugins
+```
+
+**The third line matters.** Installing does not prompt for your key and succeeds
+without one, so skipping it leaves every fetch failing. From a terminal you can
+do it in one shot instead, but `--config` only applies on a fresh install:
 
 ```bash
 claude plugin install unblockingapi@unblockingapi-plugins --config api_key=your_api_key_here
 ```
 
-Without `--config` the plugin installs with no key and every fetch fails; set it
-later with `/plugin configure` inside Claude Code. Or install interactively with
-`/plugin marketplace add unblockingapi/mcp` then `/plugin install unblockingapi@unblockingapi-plugins`.
+Full walkthrough: [docs/claude-setup.md](docs/claude-setup.md).
 
 ### Claude Code — plain MCP server
 

@@ -9,6 +9,10 @@ Templates are the product surface; no site gets special treatment.
 - **`google_search` removed.** A bespoke tool for one site does not scale to a catalogue meant to hold every site, and it pinned a template slug that went obsolete. Google is now reached the same way as everything else: build the URL, call `find_templates` with it, pass any match to `unblock_fetch`. The `UNBLOCKINGAPI_GOOGLE_TEMPLATE` environment variable is gone.
 - **`list_templates` is now `find_templates`**, and takes a `url` — "is there a template for the page I am about to fetch?" is the question that actually comes up. Keyword (`search`), `category` and `limit` are still there; output is capped at 25 by default and reports how many matched out of the whole catalogue, so a large catalogue does not flood the context.
 
+### Added
+
+- The "no key" error now says what to do where you are: inside the plugin it names `/plugin configure unblockingapi@unblockingapi-plugins`, elsewhere it points at `UNBLOCKINGAPI_KEY`. Installing a plugin never prompts for config, so this message is the only thing standing between a keyless install and a confused user.
+
 ### Fixed
 
 - The plugin passed only `${user_config.api_key}` to the server, so a plugin installed without `--config api_key=…` started with no key and every fetch failed. It now also accepts an exported `UNBLOCKINGAPI_KEY`, and both setup guides show `--config` on the install line.

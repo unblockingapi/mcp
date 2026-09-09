@@ -45,7 +45,23 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
   check("annotations read-only", fetchTool.annotations?.readOnlyHint === true);
 
   const r = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com" } });
-  check("no key → isError with hint", r.isError === true && text(r).includes("UNBLOCKINGAPI_KEY"), text(r).slice(0, 80));
+  check(
+    "no key → isError telling you to set UNBLOCKINGAPI_KEY",
+    r.isError === true && text(r).includes("Set UNBLOCKINGAPI_KEY"),
+    text(r).slice(0, 90),
+  );
+  await c.close();
+}
+
+// --- 1b. No key, running as a plugin: point at /plugin configure -------------
+{
+  const c = await connect({ UNBLOCKINGAPI_KEY: "", CLAUDE_PLUGIN_ROOT: "/tmp/fake-plugin" });
+  const r = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com" } });
+  check(
+    "no key in plugin → points at /plugin configure",
+    r.isError === true && text(r).includes("/plugin configure unblockingapi@unblockingapi-plugins"),
+    text(r).slice(0, 110),
+  );
 
   const bad = await c.callTool({ name: "unblock_fetch", arguments: { url: "not a url" } });
   check("invalid url rejected by schema", bad.isError === true, text(bad).slice(0, 80));

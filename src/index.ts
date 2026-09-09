@@ -3,8 +3,8 @@
  * UnblockingAPI MCP server.
  *
  * Exposes UnblockingAPI's web-unblocking capabilities as MCP tools so AI agents
- * can fetch bot-protected / JS-heavy pages, run Google searches, and parse
- * pages into structured JSON with published templates.
+ * can fetch bot-protected / JS-heavy pages and parse them into structured JSON
+ * with any published template.
  *
  * Transport: stdio. Config via environment:
  *   UNBLOCKINGAPI_KEY        (required)  your API key
@@ -17,6 +17,7 @@ import { z } from "zod";
 import {
   UnblockingApiClient,
   UnblockingApiError,
+  missingKeyMessage,
   type ApiResult,
   type TemplateCatalogue,
   type TemplateEntry,
@@ -399,9 +400,7 @@ async function main() {
   if (!apiKey) {
     // Surface a clear message on stderr; the server still starts so the host can
     // show the tool list, but every fetch will fail fast with a clear error.
-    process.stderr.write(
-      "[unblockingapi-mcp] WARNING: UNBLOCKINGAPI_KEY is not set — fetches will fail until it is.\n",
-    );
+    process.stderr.write(`[unblockingapi-mcp] WARNING: ${missingKeyMessage()}\n`);
   }
   const transport = new StdioServerTransport();
   await server.connect(transport);
