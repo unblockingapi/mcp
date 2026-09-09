@@ -1,0 +1,15 @@
+{
+  "name": "unblockingapi-plugins",
+  "owner": { "name": "UnblockingAPI", "url": "https://unblockingapi.com" },
+  "description": "Official Claude Code plugins from UnblockingAPI.",
+  "plugins": [
+    {
+      "name": "unblockingapi",
+      "source": "./",
+      "description": "Fetch bot-protected and JavaScript-heavy pages, run Google searches and parse sites into JSON. Replaces Claude's built-in web fetch with UnblockingAPI.",
+      "version": "0.3.0",
+      "category": "web",
+      "homepage": "https://unblockingapi.com/tools/claude"
+    }
+  ]
+}

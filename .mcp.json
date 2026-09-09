@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "unblockingapi": {
+      "command": "npx",
+      "args": ["-y", "@unblockingapi/mcp@latest"],
+      "env": {
+        "UNBLOCKINGAPI_KEY": "${user_config.api_key}"
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "unblockingapi",
+  "displayName": "UnblockingAPI",
+  "version": "0.3.0",
+  "description": "Give Claude a real browser: fetch bot-protected and JavaScript-heavy pages, run Google searches and parse sites into JSON through UnblockingAPI. Replaces the built-in web fetch.",
+  "author": {
+    "name": "UnblockingAPI",
+    "url": "https://unblockingapi.com"
+  },
+  "homepage": "https://unblockingapi.com/tools/claude",
+  "repository": "https://github.com/unblockingapi/mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "web-unblocking",
+    "scraping",
+    "browser",
+    "proxy",
+    "serp",
+    "google-search"
+  ],
+  "userConfig": {
+    "api_key": {
+      "type": "string",
+      "title": "UnblockingAPI key",
+      "description": "Your API key from https://unblockingapi.com (500 free credits on signup, no card).",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "mcpServers": "./.mcp.json"
+}

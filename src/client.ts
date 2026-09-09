@@ -1,19 +1,19 @@
 /**
  * Thin client for the UnblockingAPI public HTTP API (https://api.unblockingapi.com).
  *
- * Wraps the two public endpoints the MCP exposes:
- *   - GET|POST /unblock          → fetch a URL (plain HTTP or browser-rendered)
- *   - GET|POST /api/:api_name    → predefined templates (e.g. google-search) → structured JSON
+ * Endpoints used by the MCP server:
+ *   - POST /unblock          → fetch a URL (plain HTTP or browser-rendered), optionally
+ *                              parsed into JSON by a named template (`template=<name>`)
+ *   - GET  /templates.json   → keyless catalogue of published templates
  *
- * Auth is an API key sent as `X-Api-Key`. The whole API is synchronous; a rendered
- * fetch can take up to ~35s, so the client uses a generous default timeout.
+ * Auth is an API key sent as `X-Api-Key`. The API is synchronous: a plain fetch
+ * gives up after 30s, a rendered fetch after 140s, so the client's default
+ * timeout sits above the render ceiling to let the API's own 504 body through.
  */
 
 const DEFAULT_BASE_URL = "https://api.unblockingapi.com";
-// The API's render path runs up to REQUEST_TIMEOUT=65s (cloakapi JOB_DEADLINE 60s
-// + captcha-retry/transport margin); keep the client above that so a slow render
-// returns the API's own 504 body rather than being cut off client-side.
-const DEFAULT_TIMEOUT_MS = 70_000;
+// RenderCrawler::REQUEST_TIMEOUT is 140s server-side; a plain fetch is 30s.
+const DEFAULT_TIMEOUT_MS = 150_000;
 
 export class UnblockingApiError extends Error {
   constructor(
@@ -32,7 +32,27 @@ export interface ClientOptions {
   timeoutMs?: number;
 }
 
-/** Successful /unblock or /api/:name response (failure shape shares these fields). */
+export interface WaitRule {
+  /** CSS selector probed for visibility. */
+  if: string;
+  /** Replacement wait_for when the guard is visible. Empty = capture as-is. */
+  then?: string;
+}
+
+/** Caller-facing parameters of GET|POST /unblock. */
+export interface UnblockParams {
+  url: string;
+  render?: boolean;
+  location?: string;
+  wait_for?: string;
+  settle_ms?: number;
+  wait_rules?: WaitRule[];
+  detect_ms?: number;
+  max_age?: number;
+  template?: string;
+}
+
+/** Body of every /unblock response that carries a result — 200, 404, 500, 503, 504. */
 export interface ApiResult {
   job_id: string;
   url: string;
@@ -42,9 +62,50 @@ export interface ApiResult {
   render: boolean;
   location: string | null;
   response_format: "html" | "json";
+  /** The template used, when one was requested. */
   api_name?: string;
+  /** The template matched but its parser failed; `response` is raw HTML. */
+  parse_error?: boolean;
+  /** Served from the opt-in max_age cache. */
+  cached?: boolean;
   error?: string;
   response?: string | unknown;
+}
+
+/** One entry of the public template catalogue (GET /templates.json). */
+export interface TemplateEntry {
+  reference: string;
+  api_name: string;
+  name: string;
+  description: string;
+  username: string;
+  category: string;
+  category_label: string;
+  host: string;
+  path: string;
+  fields: string[];
+  field_count: number;
+  render: boolean;
+  location: string | null;
+  stars_count: number;
+  forks_count: number;
+  requests_count: number;
+  page_url: string;
+  sample_url: string;
+  editor_url: string;
+}
+
+export interface TemplateCategory {
+  slug: string;
+  name: string;
+  group: string;
+  description: string;
+  templates_count: number;
+}
+
+export interface TemplateCatalogue {
+  categories: TemplateCategory[];
+  templates: TemplateEntry[];
 }
 
 export class UnblockingApiClient {
@@ -53,89 +114,126 @@ export class UnblockingApiClient {
   private readonly timeoutMs: number;
 
   constructor(opts: ClientOptions) {
-    if (!opts.apiKey) {
-      throw new Error(
-        "UnblockingAPI key is required. Set the UNBLOCKINGAPI_KEY environment variable.",
-      );
-    }
     this.apiKey = opts.apiKey;
     this.baseUrl = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
     this.timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
-  /** GET|POST /unblock — params become a query string; undefined/null are dropped. */
-  async unblock(params: Record<string, unknown>): Promise<ApiResult> {
-    return this.request("/unblock", params);
-  }
-
-  /** GET|POST /api/:api_name — predefined template returning parsed JSON. */
-  async template(apiName: string, params: Record<string, unknown>): Promise<ApiResult> {
-    return this.request(`/api/${encodeURIComponent(apiName)}`, params);
-  }
-
-  private async request(path: string, params: Record<string, unknown>): Promise<ApiResult> {
-    const query = new URLSearchParams();
-    for (const [key, value] of Object.entries(params)) {
-      if (value === undefined || value === null || value === "") continue;
-      query.set(key, String(value));
+  /** POST /unblock with a JSON body; undefined/null/empty values are dropped. */
+  async unblock(params: UnblockParams): Promise<ApiResult> {
+    if (!this.apiKey) {
+      throw new UnblockingApiError(
+        "UNBLOCKINGAPI_KEY is not set. Get a key at https://unblockingapi.com and put it in the server's environment.",
+        401,
+      );
     }
 
-    const url = `${this.baseUrl}${path}?${query.toString()}`;
+    const body: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(params)) {
+      if (value === undefined || value === null || value === "") continue;
+      body[key] = value;
+    }
+
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/unblock`, {
+      method: "POST",
+      headers: {
+        "X-Api-Key": this.apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "User-Agent": "unblockingapi-mcp",
+      },
+      body: JSON.stringify(body),
+    });
+
+    const json = await this.parseJson(res);
+    const isResult = typeof json === "object" && json !== null && "status" in json;
+
+    // Bodies without a `status` are plain `{error}` envelopes from auth, credit,
+    // validation, template-lookup or concurrency gates — never a crawl result.
+    if (!isResult) {
+      const msg = (json as { error?: string })?.error;
+      switch (res.status) {
+        case 401:
+          throw new UnblockingApiError("Invalid or missing API key (HTTP 401).", 401, json);
+        case 402:
+          throw new UnblockingApiError(
+            `${msg ?? "Out of credits"} (HTTP 402). Top up at https://unblockingapi.com/billing`,
+            402,
+            json,
+          );
+        case 404:
+          throw new UnblockingApiError(
+            `${msg ?? "Unknown template"} (HTTP 404). Use list_templates to see what is available.`,
+            404,
+            json,
+          );
+        case 422:
+          throw new UnblockingApiError(`${msg ?? "Invalid parameters"} (HTTP 422).`, 422, json);
+        case 429:
+          throw new UnblockingApiError(
+            `${msg ?? "Too many requests in flight for this API key"} (HTTP 429). Wait for an in-flight request to finish, then retry.`,
+            429,
+            json,
+          );
+        case 503:
+          throw new UnblockingApiError(
+            `${msg ?? "Service temporarily unavailable"} (HTTP 503). Retry in a few seconds.`,
+            503,
+            json,
+          );
+        default:
+          throw new UnblockingApiError(
+            `${msg ?? "Unexpected response"} (HTTP ${res.status}).`,
+            res.status,
+            json,
+          );
+      }
+    }
+
+    // 200 / 404 successes, plus 500 / 503 / 504 which carry a failed result body.
+    return json as ApiResult;
+  }
+
+  /** GET /templates.json — public, no key required. */
+  async templates(): Promise<TemplateCatalogue> {
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/templates.json?limit=200`, {
+      method: "GET",
+      headers: { Accept: "application/json", "User-Agent": "unblockingapi-mcp" },
+    });
+    const json = await this.parseJson(res);
+    if (!res.ok) {
+      throw new UnblockingApiError(`Could not load the template catalogue (HTTP ${res.status}).`, res.status, json);
+    }
+    return json as TemplateCatalogue;
+  }
+
+  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    let res: Response;
     try {
-      res = await fetch(url, {
-        method: "GET",
-        headers: {
-          "X-Api-Key": this.apiKey,
-          Accept: "application/json",
-          "User-Agent": "unblockingapi-mcp",
-        },
-        signal: controller.signal,
-      });
+      return await fetch(url, { ...init, signal: controller.signal });
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         throw new UnblockingApiError(
-          `Request timed out after ${this.timeoutMs}ms. Rendered fetches can be slow — try increasing the timeout or simplifying the wait conditions.`,
+          `Request timed out after ${this.timeoutMs}ms. Rendered fetches can take up to 140s — raise UNBLOCKINGAPI_TIMEOUT_MS or lower settle_ms.`,
         );
       }
-      throw new UnblockingApiError(
-        `Network error calling UnblockingAPI: ${(err as Error).message}`,
-      );
+      throw new UnblockingApiError(`Network error calling UnblockingAPI: ${(err as Error).message}`);
     } finally {
       clearTimeout(timer);
     }
+  }
 
+  private async parseJson(res: Response): Promise<unknown> {
     const text = await res.text();
-    let json: unknown;
     try {
-      json = text ? JSON.parse(text) : {};
+      return text ? JSON.parse(text) : {};
     } catch {
       throw new UnblockingApiError(
-        `UnblockingAPI returned non-JSON response (HTTP ${res.status})`,
+        `UnblockingAPI returned a non-JSON response (HTTP ${res.status}).`,
         res.status,
         text.slice(0, 500),
       );
     }
-
-    if (res.status === 401) {
-      throw new UnblockingApiError("Invalid or missing API key (HTTP 401).", 401, json);
-    }
-    if (res.status === 429) {
-      throw new UnblockingApiError(
-        "Rate limit exceeded (HTTP 429). Limits: 60 requests/min, 3/sec.",
-        429,
-        json,
-      );
-    }
-    if (res.status === 422) {
-      const msg = (json as { error?: string }).error ?? "Parameter validation error";
-      throw new UnblockingApiError(`${msg} (HTTP 422).`, 422, json);
-    }
-
-    // 200 success, plus 502/504 which still carry a structured failed-result body.
-    return json as ApiResult;
   }
 }
