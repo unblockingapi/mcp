@@ -55,7 +55,7 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
 
 // --- 1b. No key, running as a plugin: point at /plugin configure -------------
 {
-  const c = await connect({ UNBLOCKINGAPI_KEY: "", CLAUDE_PLUGIN_ROOT: "/tmp/fake-plugin" });
+  const c = await connect({ UNBLOCKINGAPI_KEY: "", UNBLOCKINGAPI_PLUGIN: "1" });
   const r = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com" } });
   check(
     "no key in plugin → points at /plugin configure",

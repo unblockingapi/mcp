@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.2 — 2026-09-10
+
+### Fixed
+
+- The "no key" error gave plugin users the wrong instruction — "set UNBLOCKINGAPI_KEY in the server's environment" rather than the `/plugin configure` command that actually applies. Plugin context was detected from `CLAUDE_PLUGIN_ROOT`, which `.mcp.json` expands but which is **not** exported into the server process, so the check silently failed for exactly the people who needed the right advice. The plugin's `.mcp.json` now sets its own `UNBLOCKINGAPI_PLUGIN` marker. Found by running the real plugin end to end; every isolated test had passed because the test set the variable itself.
+- That message now also tells the user to reconnect the server from `/mcp` afterwards, since the key is read once at server start.
+
 ## 0.4.1 — 2026-09-09
 
 Onboarding. Everything here landed after 0.4.0 was published to npm.

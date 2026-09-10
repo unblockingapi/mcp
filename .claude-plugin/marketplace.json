@@ -10,7 +10,7 @@
       "name": "unblockingapi",
       "source": "./",
       "description": "Give Claude a real browser: fetch bot-protected and JavaScript-heavy pages through UnblockingAPI, with structured JSON for any site a published template covers. Replaces the built-in web fetch.",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "category": "web",
       "homepage": "https://unblockingapi.com/tools/claude"
     }

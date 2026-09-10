@@ -19,13 +19,19 @@ const DEFAULT_TIMEOUT_MS = 150_000;
  * "No key" means something different depending on how the server was launched,
  * and the wrong instruction here is the difference between a 10-second fix and
  * a support ticket. Inside the Claude Code plugin the key belongs to the
- * plugin's own config, NOT to an env var the user can usefully edit — the
- * plugin sets CLAUDE_PLUGIN_ROOT, so use it to tell them where to actually go.
+ * plugin's own config, not to an env var the user can usefully edit.
+ *
+ * The marker is UNBLOCKINGAPI_PLUGIN, which the plugin's own .mcp.json sets.
+ * CLAUDE_PLUGIN_ROOT looks like the natural signal and is what the docs
+ * describe for `${…}` expansion inside .mcp.json — but it is NOT exported into
+ * the server process, so keying off it silently produced the wrong advice for
+ * exactly the users who needed the right advice. Verified live.
  */
 export function missingKeyMessage(env: NodeJS.ProcessEnv = process.env): string {
   const base = "No UnblockingAPI key is configured. Get one at https://unblockingapi.com (500 free credits).";
-  return env.CLAUDE_PLUGIN_ROOT
-    ? `${base} This plugin was installed without a key: run "/plugin configure unblockingapi@unblockingapi-plugins" in Claude Code and paste it.`
+  const inPlugin = env.UNBLOCKINGAPI_PLUGIN === "1" || !!env.CLAUDE_PLUGIN_ROOT;
+  return inPlugin
+    ? `${base} This plugin has no key yet: run "/plugin configure unblockingapi@unblockingapi-plugins" in Claude Code, paste the key, then reconnect the server from /mcp.`
     : `${base} Set UNBLOCKINGAPI_KEY in the server's environment.`;
 }
 
