@@ -57,7 +57,7 @@ const client = new UnblockingApiClient({ apiKey, baseUrl, timeoutMs });
 
 const INSTRUCTIONS = `UnblockingAPI gives you a real browser and rotating residential proxies for reading the web.
 Whenever you need the contents of a URL, use unblock_fetch instead of a built-in fetch tool: it reaches pages that block bots, CAPTCHAs and geo-restrictions.
-Workflow: call unblock_fetch with render=false first (fast, cheap). If the result is thin, empty, or says JavaScript is required, call it again with render=true. Only add wait_for/settle_ms when a rendered page still lacks the content you need.
+Workflow: unblock_fetch renders with a real browser by default. Pass render=false for a faster plain HTTP fetch when you know the page needs no JavaScript. Only add wait_for/settle_ms when a rendered page still lacks the content you need.
 Templates turn a page into structured JSON instead of HTML. There is one for a growing number of sites — search engines, marketplaces, directories, portals — and anyone can publish more. Before scraping a well-known site by hand, call find_templates with the URL you are about to fetch; if one matches, pass its reference as unblock_fetch's template argument and you get parsed fields instead of markup to sift through.
 Every successful fetch costs 1 credit; failures are free. Pass max_age (seconds) when re-reading the same URL within a few minutes.`;
 
@@ -198,7 +198,7 @@ const locationSchema = z
   .string()
   .regex(/^[a-zA-Z]{2}$/, "2-letter ISO country code")
   .optional()
-  .describe("2-letter country code to proxy through (e.g. 'us', 'gb', 'de', 'se'). Any ISO country.");
+  .describe("2-letter country code to proxy through (e.g. 'us', 'gb', 'de'). Any ISO country.");
 
 const maxAgeSchema = z
   .number()
@@ -234,8 +234,8 @@ server.registerTool(
     description:
       "Fetch any URL through UnblockingAPI, bypassing bot detection, CAPTCHAs and geo-blocks " +
       "with rotating residential proxies. Returns clean HTML (scripts, styles and SVGs already " +
-      "stripped). Start with render=false; set render=true only when the response is missing " +
-      "content because the page needs JavaScript. Pass a template name to get structured JSON " +
+      "stripped). Renders with a real browser by default; pass render=false for a faster plain " +
+      "HTTP fetch when the page needs no JavaScript. Pass a template name to get structured JSON " +
       "instead of HTML — call find_templates with the url first to see whether one exists. " +
       "Costs 1 credit per successful fetch; failures are free.",
     inputSchema: {
@@ -245,7 +245,7 @@ server.registerTool(
         .optional()
         .describe(
           "Render with a real browser (executes JavaScript). Needed for SPAs and lazy-loaded content. " +
-            "Slower (up to ~2 min worst case). Default false.",
+            "Slower (up to ~2 min worst case). Default true; false is a plain HTTP fetch.",
         ),
       location: locationSchema,
       wait_for: z
