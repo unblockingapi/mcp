@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0 — 2026-09-29
+
+Caught up with the API.
+
+### Changed
+
+- **`render` is automatic.** Left unset, the API fetches plainly first and renders in a real browser when the plain fetch is blocked, a challenge wall or an empty JavaScript shell, learning per site. The tool descriptions, server instructions and skill now say so instead of "render by default" / "plain first, retry with render=true". The "looks like it needs JavaScript" hint only appears after an explicit `render: false`.
+- Default timeout raised to 180 s: an automatic request can run a 30 s plain fetch and then a 140 s render.
+
+### Added
+
+- `unblock_fetch` accepts `wait_state`, `scroll_steps` and `wait_min_ms`, and template references pinned to a version (`handle/name@3`).
+- Output metadata carries `render_reason`, `readiness`, `wait_timed_out` and `template_version`, with a note when a Turnstile checkbox needs a human click or a wait timed out.
+
 ## 0.4.2 — 2026-09-10
 
 ### Fixed

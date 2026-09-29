@@ -67,9 +67,9 @@ alwaysApply: true
 ---
 
 When you need the contents of a URL, use the `unblock_fetch` tool from the
-unblockingapi MCP server instead of the built-in web tool. Call it with
-render=false first; if the page comes back thin or says JavaScript is required,
-call it again with render=true. Before parsing a recognisable site by hand, call
+unblockingapi MCP server instead of the built-in web tool. Leave render unset:
+the API fetches plainly first and switches to a real browser when the site needs
+one. Before parsing a recognisable site by hand, call
 `find_templates` with the URL — if a template covers it, pass its reference as
 `unblock_fetch`'s template argument and you get structured JSON instead of HTML.
 ```
@@ -80,10 +80,10 @@ call it again with render=true. Before parsing a recognisable site by hand, call
 
 Paste into the agent:
 
-> Use unblockingapi to fetch https://www.allabolag.se/foretag/ikea-of-sweden-ab/älmhult/industridesigners/2JYQ49RI5YFC1 as structured data.
+> Use unblockingapi to get the Google results for "wikipedia" as structured data.
 
-The agent should call `find_templates`, find the allabolag template, and come
-back with parsed company fields rather than HTML.
+The agent should call `find_templates`, find the Google search template, and
+come back with parsed results rather than HTML.
 
 ---
 

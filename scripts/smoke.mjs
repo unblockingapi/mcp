@@ -24,13 +24,16 @@ async function connect(env) {
   return client;
 }
 
+// A render can take ~170s; the SDK's default 60s request timeout would cut it.
+const LIVE = { timeout: 200_000 };
+
 const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
 
 // --- 1. No key: server starts, tools listed, fetch fails cleanly -------------
 {
   const c = await connect({ UNBLOCKINGAPI_KEY: "" });
   const instructions = c.getInstructions();
-  check("server instructions present", !!instructions && instructions.includes("render=false"));
+  check("server instructions present", !!instructions && instructions.includes("render_reason") && instructions.includes("find_templates"));
   const { tools } = await c.listTools();
   const names = tools.map((t) => t.name).sort();
   check("tools", JSON.stringify(names) === JSON.stringify(["find_templates", "unblock_fetch"]), names.join(","));
@@ -68,8 +71,8 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
 
   const t = await c.callTool({ name: "find_templates", arguments: {} });
   check("find_templates (keyless)", !t.isError && text(t).includes("kjellberg/google-search"), text(t).split("\n")[0]);
-  const ts = await c.callTool({ name: "find_templates", arguments: { url: "https://www.allabolag.se/foretag/ikea-of-sweden-ab/x/y/2JYQ49RI5YFC1" } });
-  check("find_templates matches a URL", !ts.isError && text(ts).includes("kjellberg/allabolag"), text(ts).split("\n")[0]);
+  const ts = await c.callTool({ name: "find_templates", arguments: { url: "https://www.google.com/search?q=wikipedia" } });
+  check("find_templates matches a URL", !ts.isError && text(ts).includes("kjellberg/google-search"), text(ts).split("\n")[0]);
   const tm = await c.callTool({ name: "find_templates", arguments: { url: "https://example.com/nothing" } });
   check("find_templates reports no match", !tm.isError && text(tm).includes("No template covers"), text(tm).split("\n")[0]);
   await c.close();
@@ -87,23 +90,24 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
 if (key) {
   const c = await connect({ UNBLOCKINGAPI_KEY: key });
   // max_age must be sent on the priming request too: only opted-in traffic populates the cache.
-  const r1 = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com", max_age: 120 } });
+  const r1 = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com", max_age: 120 } }, undefined, LIVE);
   const m1 = text(r1);
   check("live plain fetch succeeded", !r1.isError && m1.includes('"status": "succeeded"'), m1.slice(0, 120).replace(/\n/g, " "));
-  check("live plain fetch has HTML body", m1.includes("<h1>Example Domain</h1>"));
+  check("live plain fetch has HTML body", m1.includes("<title>Example Domain</title>"));
+  check("live fetch says why it chose its mode", m1.includes('"render_reason"'));
 
-  const r2 = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com", max_age: 120 } });
+  const r2 = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com", max_age: 120 } }, undefined, LIVE);
   check("live max_age cache hit", !r2.isError && text(r2).includes('"cached": true'), text(r2).slice(0, 120).replace(/\n/g, " "));
 
-  const r3 = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com", render: true, wait_for: "h1", settle_ms: 3000 } });
-  check("live render with wait_for", !r3.isError && text(r3).includes('"render": true'), text(r3).slice(0, 120).replace(/\n/g, " "));
+  const r3 = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com", render: true, wait_for: "h1", wait_state: "nonempty", settle_ms: 3000 } }, undefined, LIVE);
+  check("live render with wait_for + wait_state", !r3.isError && text(r3).includes('"render": true') && text(r3).includes('"readiness"'), text(r3).slice(0, 120).replace(/\n/g, " "));
 
   // Structured extraction via a plain-HTTP template — an easy target that does
   // not depend on the render fleet. Field list comes from the catalogue.
   const r4 = await c.callTool({
     name: "unblock_fetch",
     arguments: { url: "https://marbellaliving.com/search.php?sort=latest&page=1", template: "kjellberg/marbella-living-search" },
-  });
+  }, undefined, LIVE);
   const m4 = text(r4);
   check(
     "live template → JSON",

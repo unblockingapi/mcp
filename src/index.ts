@@ -24,7 +24,7 @@ import {
   type UnblockParams,
 } from "./client.js";
 
-export const VERSION = "0.4.2";
+export const VERSION = "0.5.0";
 
 /** Default cap on the body returned to the model; pages are often 100–500 KB. */
 const DEFAULT_MAX_CHARS = 120_000;
@@ -57,7 +57,7 @@ const client = new UnblockingApiClient({ apiKey, baseUrl, timeoutMs });
 
 const INSTRUCTIONS = `UnblockingAPI gives you a real browser and rotating residential proxies for reading the web.
 Whenever you need the contents of a URL, use unblock_fetch instead of a built-in fetch tool: it reaches pages that block bots, CAPTCHAs and geo-restrictions.
-Workflow: unblock_fetch renders with a real browser by default. Pass render=false for a faster plain HTTP fetch when you know the page needs no JavaScript. Only add wait_for/settle_ms when a rendered page still lacks the content you need.
+Workflow: leave render unset and the API decides — a fast plain fetch first, and a real browser instead when that comes back blocked, as a challenge wall or as an empty JavaScript shell (learned per site, so the next request goes straight to the browser). The response's render_reason says which. Pass render=true only when you know the page needs JavaScript, and add wait options (wait_for, wait_state, scroll_steps, wait_min_ms) only when a rendered page still lacks the content you need.
 Templates turn a page into structured JSON instead of HTML. There is one for a growing number of sites — search engines, marketplaces, directories, portals — and anyone can publish more. Before scraping a well-known site by hand, call find_templates with the URL you are about to fetch; if one matches, pass its reference as unblock_fetch's template argument and you get parsed fields instead of markup to sift through.
 Every successful fetch costs 1 credit; failures are free. Pass max_age (seconds) when re-reading the same URL within a few minutes.`;
 
@@ -88,8 +88,12 @@ function toToolResult(result: ApiResult, maxChars = DEFAULT_MAX_CHARS): ToolResu
     response_time_ms: result.response_time_ms,
     location: result.location,
     render: result.render,
+    ...(result.render_reason ? { render_reason: result.render_reason } : {}),
     response_format: result.response_format,
     ...(result.api_name ? { api_name: result.api_name } : {}),
+    ...(result.template_version ? { template_version: result.template_version } : {}),
+    ...(result.wait_timed_out ? { wait_timed_out: true } : {}),
+    ...(result.readiness ? { readiness: result.readiness } : {}),
     ...(result.parse_error ? { parse_error: true } : {}),
     ...(result.cached ? { cached: true } : {}),
     ...(truncated ? { truncated: true, total_chars: totalChars, returned_chars: maxChars } : {}),
@@ -97,6 +101,13 @@ function toToolResult(result: ApiResult, maxChars = DEFAULT_MAX_CHARS): ToolResu
   };
 
   const notes: string[] = [];
+  const verification = result.readiness?.verification;
+  if (verification?.status === "interactive") {
+    notes.push("The page shows a Cloudflare Turnstile checkbox that needs a human click; waiting longer will not help.");
+  }
+  if (result.wait_timed_out) {
+    notes.push("The requested wait reached its limit; the page was captured as it was and may be incomplete.");
+  }
   if (result.parse_error) {
     notes.push(
       "The template's parser failed on this page (its markup may have changed); raw HTML is returned instead.",
@@ -107,10 +118,12 @@ function toToolResult(result: ApiResult, maxChars = DEFAULT_MAX_CHARS): ToolResu
       `Body truncated to ${maxChars} of ${totalChars} characters. Pass a larger max_chars to see more.`,
     );
   }
+  // The API renders an empty shell itself unless the caller said render=false,
+  // so this only ever fires when the model forced a plain fetch.
   if (!failed && !result.render && result.response_format === "html" && looksLikeItNeedsJs(body)) {
     notes.push(
       "This page looks like it needs JavaScript (little visible text, or a 'JavaScript required' notice). " +
-        "Call unblock_fetch again with render=true to get the rendered DOM.",
+        "Call unblock_fetch again without render=false (or with render=true) to get the rendered DOM.",
     );
   }
 
@@ -198,7 +211,7 @@ const locationSchema = z
   .string()
   .regex(/^[a-zA-Z]{2}$/, "2-letter ISO country code")
   .optional()
-  .describe("2-letter country code to proxy through (e.g. 'us', 'gb', 'de'). Any ISO country.");
+  .describe("2-letter country code to proxy through (e.g. 'us', 'gb', 'de'). Most countries are supported; an unsupported one is refused with the list.");
 
 const maxAgeSchema = z
   .number()
@@ -233,9 +246,9 @@ server.registerTool(
     title: "Fetch a URL through UnblockingAPI",
     description:
       "Fetch any URL through UnblockingAPI, bypassing bot detection, CAPTCHAs and geo-blocks " +
-      "with rotating residential proxies. Returns clean HTML (scripts, styles and SVGs already " +
-      "stripped). Renders with a real browser by default; pass render=false for a faster plain " +
-      "HTTP fetch when the page needs no JavaScript. Pass a template name to get structured JSON " +
+      "with rotating residential proxies. Returns clean HTML (scripts, styles, SVGs and cookie " +
+      "banners already stripped). Picks the mode itself by default: a plain HTTP fetch first, and " +
+      "a real browser when the site blocks it or needs JavaScript. Pass a template name to get structured JSON " +
       "instead of HTML — call find_templates with the url first to see whether one exists. " +
       "Costs 1 credit per successful fetch; failures are free.",
     inputSchema: {
@@ -244,8 +257,9 @@ server.registerTool(
         .boolean()
         .optional()
         .describe(
-          "Render with a real browser (executes JavaScript). Needed for SPAs and lazy-loaded content. " +
-            "Slower (up to ~2 min worst case). Default true; false is a plain HTTP fetch.",
+          "Omit to let the API decide (plain fetch first, a browser when blocked or when the page is " +
+            "an empty JavaScript shell; learned per site). true always renders with a real browser " +
+            "(slower, up to ~2 min worst case); false never does. Any wait option implies true.",
         ),
       location: locationSchema,
       wait_for: z
@@ -253,7 +267,7 @@ server.registerTool(
         .max(500)
         .optional()
         .describe(
-          "Render-only. When to capture: 'stable' (default — once the DOM stops changing), " +
+          "Implies a browser. When to capture: 'stable' (default — once the DOM stops changing), " +
             "'domcontentloaded' (immediately), 'networkidle', or any CSS selector (wait until it is " +
             "visible, then settle). Prefer a selector or 'stable' on pages that never go quiet.",
         ),
@@ -264,15 +278,15 @@ server.registerTool(
         .max(25_000)
         .optional()
         .describe(
-          "Render-only. Ceiling (not a delay) on the settle wait, default 5000. Capture happens as " +
-            "soon as the DOM has been quiet for 500ms; raise for infinite-scroll pages, lower to cap the worst case.",
+          "Implies a browser. Ceiling (not a delay) on the settle wait, default 5000. Capture happens as " +
+            "soon as the DOM has been quiet for 500ms. Use wait_min_ms for a minimum delay; lower this to cap the worst case.",
         ),
       wait_rules: z
         .array(waitRuleSchema)
         .max(10)
         .optional()
         .describe(
-          "Render-only. Conditional waits for pages with several possible layouts (consent gate, " +
+          "Implies a browser. Conditional waits for pages with several possible layouts (consent gate, " +
             "interstitial, A/B variant). Each 'if' selector is probed in order for detect_ms; the first " +
             "visible one wins and its 'then' replaces wait_for. Example: [{if: '#consent', then: '#results'}].",
         ),
@@ -282,16 +296,48 @@ server.registerTool(
         .min(0)
         .max(25_000)
         .optional()
-        .describe("Render-only. How long to probe wait_rules guards before falling back to wait_for. Default 800."),
+        .describe("Implies a browser. How long to probe wait_rules guards before falling back to wait_for. Default 800."),
+      wait_state: z
+        .enum(["visible", "nonempty", "hidden", "stable"])
+        .optional()
+        .describe(
+          "Condition for a CSS selector in wait_for (requires one): 'visible' (default), 'nonempty' " +
+            "(visible text, ignoring loading placeholders), 'hidden' (all matches hidden or gone — e.g. a " +
+            "spinner), 'stable' (text and match count unchanged for 750ms).",
+        ),
+      scroll_steps: z
+        .number()
+        .int()
+        .min(0)
+        .max(10)
+        .optional()
+        .describe(
+          "Implies a browser. Scroll down this many times before the readiness check, to trigger " +
+            "lazy-loaded sections. Bounded discovery, not a way to collect an infinite list.",
+        ),
+      wait_min_ms: z
+        .number()
+        .int()
+        .min(0)
+        .max(10_000)
+        .optional()
+        .describe(
+          "Implies a browser. Minimum delay after navigation before scrolling or checking readiness, " +
+            "for content that is absent from the first capture.",
+        ),
       max_age: maxAgeSchema,
       template: z
         .string()
-        .regex(/^(?:[a-z0-9][a-z0-9-]{1,48}[a-z0-9]\/)?[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/, "template reference like 'handle/name'")
+        .regex(
+          /^(?:[a-z0-9][a-z0-9-]{1,48}[a-z0-9]\/)?[a-z0-9][a-z0-9-]{1,48}[a-z0-9](?:@[1-9]\d{0,8})?$/,
+          "template reference like 'handle/name', optionally pinned as 'handle/name@3'",
+        )
         .optional()
         .describe(
           "Parse the page with a published template and return JSON instead of HTML. Takes a " +
             "template reference like 'handle/name' — call find_templates with this url first to see " +
-            "whether one covers the site. The template forces its own render and wait settings.",
+            "whether one covers the site. Append '@<version>' to pin a version (the response's " +
+            "template_version is the one that answered). The template forces its own render and wait settings.",
         ),
       max_chars: maxCharsSchema,
     },

@@ -9,11 +9,14 @@
  * Auth is an API key sent as `X-Api-Key`. The API is synchronous: a plain fetch
  * gives up after 30s, a rendered fetch after 140s, so the client's default
  * timeout sits above the render ceiling to let the API's own 504 body through.
+ * With render unset the API may do both — a plain fetch that is blocked is
+ * rendered instead — so the worst case is the two back to back.
  */
 
 const DEFAULT_BASE_URL = "https://api.unblockingapi.com";
-// RenderCrawler::REQUEST_TIMEOUT is 140s server-side; a plain fetch is 30s.
-const DEFAULT_TIMEOUT_MS = 150_000;
+// RenderCrawler::REQUEST_TIMEOUT is 140s server-side; a plain fetch is 30s, and
+// an automatic request can run one and then the other.
+const DEFAULT_TIMEOUT_MS = 180_000;
 
 /**
  * "No key" means something different depending on how the server was launched,
@@ -68,8 +71,20 @@ export interface UnblockParams {
   settle_ms?: number;
   wait_rules?: WaitRule[];
   detect_ms?: number;
+  wait_state?: "visible" | "nonempty" | "hidden" | "stable";
+  scroll_steps?: number;
+  wait_min_ms?: number;
   max_age?: number;
   template?: string;
+}
+
+export interface Readiness {
+  status: "satisfied" | "timeout" | "unavailable";
+  reason?: string;
+  waited_ms?: number;
+  scroll_steps?: number;
+  /** A visible Cloudflare Turnstile widget and its outcome. */
+  verification?: { vendor: "turnstile"; status: "solved" | "interactive" | "pending"; waited_ms?: number } | null;
 }
 
 /** Body of every /unblock response that carries a result — 200, 404, 500, 503, 504. */
@@ -80,10 +95,18 @@ export interface ApiResult {
   http_response_code: number | null;
   response_time_ms: number | null;
   render: boolean;
+  /** Why that mode: plain | fallback:<why> | site:<why> | wait | template | requested. */
+  render_reason?: string;
   location: string | null;
   response_format: "html" | "json";
+  /** A requested browser wait reached its limit; the HTML may still be useful. */
+  wait_timed_out?: boolean;
+  /** Browser wait outcome, when the worker reports one. */
+  readiness?: Readiness;
   /** The template used, when one was requested. */
   api_name?: string;
+  /** Which template version answered: the pinned one, or its latest. */
+  template_version?: number;
   /** The template matched but its parser failed; `response` is raw HTML. */
   parse_error?: boolean;
   /** Served from the opt-in max_age cache. */
@@ -232,7 +255,7 @@ export class UnblockingApiClient {
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         throw new UnblockingApiError(
-          `Request timed out after ${this.timeoutMs}ms. Rendered fetches can take up to 140s — raise UNBLOCKINGAPI_TIMEOUT_MS or lower settle_ms.`,
+          `Request timed out after ${this.timeoutMs}ms. A plain fetch that falls back to a browser can take up to ~170s — raise UNBLOCKINGAPI_TIMEOUT_MS or lower settle_ms.`,
         );
       }
       throw new UnblockingApiError(`Network error calling UnblockingAPI: ${(err as Error).message}`);

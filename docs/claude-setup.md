@@ -60,10 +60,10 @@ file in your repo.
 **4. Check it landed.** Run `/mcp` — `unblockingapi` should show as connected
 with two tools. Then try:
 
-> Use unblockingapi to fetch https://www.allabolag.se/foretag/ikea-of-sweden-ab/älmhult/industridesigners/2JYQ49RI5YFC1 as structured data.
+> Use unblockingapi to get the Google results for "wikipedia" as structured data.
 
-Claude should call `find_templates`, find the allabolag template, and come back
-with parsed company fields rather than HTML. If instead you get "No
+Claude should call `find_templates`, find the Google search template, and come
+back with parsed results rather than HTML. If instead you get "No
 UnblockingAPI key is configured", step 3 did not take — run it again.
 
 ### Install it from the terminal
@@ -95,9 +95,9 @@ fetched with `npx …@latest`, so new tools arrive without reinstalling.
 
 ### What the plugin changes
 
-- Claude prefers `unblock_fetch` for any URL and starts with a plain fetch
-  (`render: false`). It only renders with a real browser when the page comes back
-  thin or says JavaScript is required — the tool output tells it so.
+- Claude prefers `unblock_fetch` for any URL and leaves the mode to the API: a
+  plain fetch first, and a real browser when the site blocks it or serves an
+  empty JavaScript shell (learned per site).
 - The built-in `WebFetch` tool is denied with a message pointing at
   `unblock_fetch`. If you ever remove your key, the hook stands down and
   `WebFetch` works again, so a broken setup never leaves Claude blind.
@@ -126,7 +126,7 @@ To make Claude use it for every page, add a line to your `CLAUDE.md`:
 
 ```markdown
 When you need the contents of a URL, use the unblockingapi `unblock_fetch` tool
-instead of WebFetch. Try render=false first, then render=true if the page needs JavaScript.
+instead of WebFetch. Leave render unset; the API picks plain fetch or browser itself.
 ```
 
 ---
@@ -189,4 +189,4 @@ the same as plain ones but take longer, which is why Claude tries plain first.
 | "Too many requests in flight (HTTP 429)" | You hit your plan's concurrency cap. Claude will retry once another request finishes. |
 | Tools don't appear in Claude Desktop | The config file is not valid JSON, or the app was not restarted. |
 | Not sure what is wrong | Run `/unblockingapi:setup` — it diagnoses the key, the connection and your credits, and tells you the one thing to fix. |
-| A rendered fetch times out | Lower `settle_ms`, or wait on a specific selector with `wait_for`. The hard ceiling is 140 s. |
+| A rendered fetch times out | Lower `settle_ms`, or wait on a specific selector with `wait_for`. A render's hard ceiling is 140 s (about 170 s when a blocked plain fetch falls back to one). |
