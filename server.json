@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.unblockingapi/mcp",
+  "title": "UnblockingAPI",
+  "description": "Fetch bot-protected and JavaScript-heavy pages for AI agents, or parse them to JSON with templates.",
+  "websiteUrl": "https://unblockingapi.com",
+  "repository": {
+    "url": "https://github.com/unblockingapi/mcp",
+    "source": "github"
+  },
+  "version": "0.5.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@unblockingapi/mcp",
+      "version": "0.5.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "UNBLOCKINGAPI_KEY",
+          "description": "Your UnblockingAPI key from https://unblockingapi.com (500 free credits, no card).",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "UNBLOCKINGAPI_TIMEOUT_MS",
+          "description": "Per-request timeout in milliseconds. Default 180000.",
+          "isRequired": false,
+          "format": "number"
+        }
+      ]
+    }
+  ]
+}
