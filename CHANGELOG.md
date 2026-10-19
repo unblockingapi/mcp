@@ -1,11 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.5.1 — 2026-10-19
 
 ### Added
 
 - `mcpName` (`io.github.unblockingapi/mcp`) in `package.json` and a `server.json`, so the next npm release can be listed in the official MCP Registry. `server.json` follows the 2025-12-11 schema; its `version` fields move with `package.json` at release.
-- `glama.json`, so the `unblockingapi` org can claim the Glama listing. The maintainer username is a placeholder until it is filled in.
+- `glama.json`, so the `unblockingapi` org can claim the Glama listing.
 
 ## 0.5.0 — 2026-09-29
 
