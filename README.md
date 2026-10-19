@@ -115,7 +115,16 @@ Cline, …) will set it up if you ask:
 ### Hosted server
 
 No Node, no install: connect to `https://mcp.unblockingapi.com/mcp`
-(Streamable HTTP) and send your key as a header. Same tools, same credits.
+(Streamable HTTP). Same tools, same credits. Sign in with your UnblockingAPI
+account, or send your key as a header.
+
+**Claude.ai and Claude Desktop:** Settings → Connectors → *Add custom
+connector*, paste `https://mcp.unblockingapi.com/mcp`, then *Connect* and allow
+access on the UnblockingAPI page that opens. No key to copy; you can disconnect
+it any time under Settings → *Connected apps* at app.unblockingapi.com.
+
+Clients that support OAuth do the same when you add the URL without a header.
+With a key instead:
 
 ```bash
 # Claude Code
@@ -139,11 +148,9 @@ Cursor, Windsurf and other clients that take a URL plus headers:
 }
 ```
 
-`X-Api-Key: your_api_key_here` works too. Claude.ai and Claude Desktop custom
-connectors sign in with OAuth instead of a header, which the hosted server does
-not offer yet; use the local server there for now. The local server is still
-the better fit for the Claude Code plugin, which also redirects Claude's
-built-in web fetch.
+`X-Api-Key: your_api_key_here` works too. The local server is still the better
+fit for the Claude Code plugin, which also redirects Claude's built-in web
+fetch.
 
 ### Environment variables
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Sign-in with OAuth on the hosted server, for clients that cannot send a key header (Claude.ai and Claude Desktop custom connectors among them). A request without credentials gets a 401 pointing at `/.well-known/oauth-protected-resource`; app.unblockingapi.com is the authorization server, with dynamic client registration and PKCE. A bearer that is not a 64-hex API key is taken as an access token and traded for its user's key with Rails (`src/oauth.ts`, cached for a minute). Configured by `MCP_INTERNAL_TOKEN`, `RAILS_WEB_URL`, `AUTH_ISSUER` and `PUBLIC_URL`; without `MCP_INTERNAL_TOKEN` it is off.
+
+### Changed
+
+- `server.json`: the hosted server's `Authorization` header is optional now.
+
 ## 0.6.0 — 2026-10-19
 
 ### Added

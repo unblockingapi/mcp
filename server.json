@@ -42,8 +42,8 @@
       "headers": [
         {
           "name": "Authorization",
-          "description": "Bearer followed by your UnblockingAPI key from https://unblockingapi.com (500 free credits, no card), e.g. 'Bearer sk_...'.",
-          "isRequired": true,
+          "description": "Optional. Bearer followed by your UnblockingAPI key from https://unblockingapi.com (500 free credits, no card), e.g. 'Bearer <key>'. Without it, clients that support OAuth sign in with your UnblockingAPI account instead.",
+          "isRequired": false,
           "isSecret": true,
           "format": "string"
         }

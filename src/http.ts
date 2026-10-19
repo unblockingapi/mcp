@@ -9,19 +9,29 @@
  * 15s, which keeps a 2-minute render alive through Cloudflare (100s to first
  * byte) and Traefik.
  *
- * The key arrives as `Authorization: Bearer <key>` or `X-Api-Key: <key>` and is
- * forwarded to api.unblockingapi.com unchanged; credits, plans and concurrency
- * stay the API's business. It is never logged.
+ * Two ways in, both ending in the caller's own API key, which is forwarded to
+ * api.unblockingapi.com unchanged (credits, plans and concurrency stay the
+ * API's business) and never logged:
+ *   - a key header: `Authorization: Bearer <64-hex key>` or `X-Api-Key: <key>`;
+ *   - OAuth: any other bearer is an access token from app.unblockingapi.com,
+ *     which oauth.ts trades for the key. Clients that send nothing get a 401
+ *     pointing at /.well-known/oauth-protected-resource and sign in from there
+ *     (Claude.ai and Claude Desktop connectors work this way).
  *
  * Config via environment:
  *   PORT                     (optional)  listen port (default 8080)
  *   UNBLOCKINGAPI_BASE_URL   (optional)  API base URL (default https://api.unblockingapi.com)
  *   UNBLOCKINGAPI_TIMEOUT_MS (optional)  per-request API timeout in ms (default 180000)
  *   SHUTDOWN_GRACE_MS        (optional)  how long SIGTERM waits for in-flight calls (default 185000)
+ *   PUBLIC_URL               (optional)  this server's public origin (default https://mcp.unblockingapi.com)
+ *   AUTH_ISSUER              (optional)  the OAuth authorization server (default https://app.unblockingapi.com)
+ *   RAILS_WEB_URL            (optional)  Rails as reached from here, for token lookups (default AUTH_ISSUER)
+ *   MCP_INTERNAL_TOKEN       (optional)  `bin/rails mcp:internal_token`; unset = OAuth off, any bearer is a key
  */
 import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { UnblockingApiClient } from "./client.js";
+import { lookupToken, looksLikeApiKey, type OAuthConfig } from "./oauth.js";
 import { VERSION, createServer } from "./server.js";
 
 const port = Number(process.env.PORT || 8080);
@@ -35,6 +45,34 @@ const MAX_BODY_BYTES = 1_000_000;
 
 const DOCS_URL = "https://github.com/unblockingapi/mcp#hosted-server";
 
+const publicUrl = (process.env.PUBLIC_URL || "https://mcp.unblockingapi.com").replace(/\/+$/, "");
+const authIssuer = (process.env.AUTH_ISSUER || "https://app.unblockingapi.com").replace(/\/+$/, "");
+const oauth: OAuthConfig | null = process.env.MCP_INTERNAL_TOKEN
+  ? { railsUrl: process.env.RAILS_WEB_URL || authIssuer, internalToken: process.env.MCP_INTERNAL_TOKEN }
+  : null;
+
+const RESOURCE_METADATA_URL = `${publicUrl}/.well-known/oauth-protected-resource`;
+const SCOPE = "mcp";
+
+/** RFC 9728 protected-resource metadata: where MCP clients learn to sign in. */
+function resourceMetadata() {
+  return {
+    resource: `${publicUrl}/mcp`,
+    authorization_servers: [authIssuer],
+    scopes_supported: [SCOPE],
+    bearer_methods_supported: ["header"],
+    resource_name: "UnblockingAPI",
+    resource_documentation: DOCS_URL,
+  };
+}
+
+/** The 401 challenge (RFC 6750 + MCP authorization): points the client at the metadata. */
+function challenge(error?: "invalid_token"): Record<string, string> {
+  const parts = [`resource_metadata="${RESOURCE_METADATA_URL}"`, `scope="${SCOPE}"`];
+  if (error) parts.unshift(`error="${error}"`);
+  return { "WWW-Authenticate": `Bearer ${parts.join(", ")}` };
+}
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
@@ -43,11 +81,26 @@ const CORS_HEADERS = {
   "Access-Control-Max-Age": "86400",
 };
 
-export function extractApiKey(req: IncomingMessage): string {
-  const auth = req.headers.authorization ?? "";
-  const bearer = /^Bearer\s+(.+)$/i.exec(auth)?.[1]?.trim();
+type Caller =
+  | { kind: "key"; apiKey: string }
+  | { kind: "anonymous" }
+  | { kind: "invalid_token" }
+  | { kind: "unavailable"; detail: string };
+
+/** Who is calling: a key header, an OAuth token (resolved to its key), or nobody. */
+async function resolveCaller(req: IncomingMessage): Promise<Caller> {
   const header = req.headers["x-api-key"];
-  return bearer || (Array.isArray(header) ? header[0] : header)?.trim() || "";
+  const keyHeader = (Array.isArray(header) ? header[0] : header)?.trim();
+  if (keyHeader) return { kind: "key", apiKey: keyHeader };
+
+  const bearer = /^Bearer\s+(.+)$/i.exec(req.headers.authorization ?? "")?.[1]?.trim();
+  if (!bearer) return { kind: "anonymous" };
+  if (looksLikeApiKey(bearer) || !oauth) return { kind: "key", apiKey: bearer };
+
+  const found = await lookupToken(bearer, oauth);
+  if (found.status === "ok") return { kind: "key", apiKey: found.apiKey };
+  if (found.status === "invalid") return { kind: "invalid_token" };
+  return { kind: "unavailable", detail: found.detail };
 }
 
 function send(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) {
@@ -94,17 +147,27 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<str
     return "-";
   }
 
-  const apiKey = extractApiKey(req);
-  if (!apiKey) {
+  const caller = await resolveCaller(req);
+  if (caller.kind === "anonymous") {
     rpcError(
       res,
       401,
       -32001,
-      `Missing API key. Send "Authorization: Bearer <your UnblockingAPI key>". Get a key with 500 free credits at https://unblockingapi.com — setup: ${DOCS_URL}`,
-      { "WWW-Authenticate": 'Bearer realm="UnblockingAPI"' },
+      `Sign in required: connect with OAuth, or send "Authorization: Bearer <your UnblockingAPI key>". Get a key with 500 free credits at https://unblockingapi.com — setup: ${DOCS_URL}`,
+      challenge(),
     );
     return "-";
   }
+  if (caller.kind === "invalid_token") {
+    rpcError(res, 401, -32001, "The access token is invalid, expired or revoked. Sign in again.", challenge("invalid_token"));
+    return "-";
+  }
+  if (caller.kind === "unavailable") {
+    process.stderr.write(`[unblockingapi-mcp] token lookup failed: ${caller.detail}\n`);
+    rpcError(res, 503, -32000, "Sign-in is temporarily unavailable. Retry in a few seconds, or use an API key header.", { "Retry-After": "5" });
+    return "-";
+  }
+  const apiKey = caller.apiKey;
 
   let body: unknown;
   try {
@@ -141,6 +204,8 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if (req.method === "OPTIONS") {
       res.writeHead(204, CORS_HEADERS);
       res.end();
+    } else if (path === "/.well-known/oauth-protected-resource" || path === "/.well-known/oauth-protected-resource/mcp") {
+      send(res, 200, resourceMetadata(), { "Cache-Control": "public, max-age=3600" });
     } else if (path === "/healthz") {
       send(res, shuttingDown ? 503 : 200, shuttingDown ? "shutting down" : "ok");
     } else if (path === "/mcp" || path === "/mcp/") {
@@ -150,8 +215,8 @@ async function route(req: IncomingMessage, res: ServerResponse) {
         res,
         200,
         `UnblockingAPI MCP server v${VERSION}\n\n` +
-          `Endpoint: https://mcp.unblockingapi.com/mcp (Streamable HTTP)\n` +
-          `Auth:     Authorization: Bearer <your UnblockingAPI key>\n` +
+          `Endpoint: ${publicUrl}/mcp (Streamable HTTP)\n` +
+          `Auth:     OAuth (sign in from your MCP client), or Authorization: Bearer <your UnblockingAPI key>\n` +
           `Setup:    ${DOCS_URL}\n`,
       );
     } else {
@@ -175,7 +240,9 @@ httpServer.headersTimeout = 96_000;
 httpServer.requestTimeout = 0;
 
 httpServer.listen(port, () => {
-  process.stdout.write(`[unblockingapi-mcp] v${VERSION} listening on :${port} (streamable http)\n`);
+  process.stdout.write(
+    `[unblockingapi-mcp] v${VERSION} listening on :${port} (streamable http, oauth ${oauth ? `via ${authIssuer}` : "off"})\n`,
+  );
 });
 
 process.on("SIGTERM", () => {
