@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      # Keyless: tool listing, the HTTP auth gate and the public template
+      # catalogue. Live fetches need a key and cost credits, so they stay local.
+      - run: npm run smoke
+      - run: npm run smoke:http
+      - run: docker build -t mcp-ci .

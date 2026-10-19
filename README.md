@@ -112,16 +112,38 @@ Cline, …) will set it up if you ask:
 > over stdio via `npx -y @unblockingapi/mcp` and needs the env var
 > `UNBLOCKINGAPI_KEY`.
 
-### ChatGPT and other remote-only clients
+### Hosted server
 
-ChatGPT connectors need a public HTTPS MCP endpoint. Bridge the stdio server
-with [`supergateway`](https://github.com/supercorp-ai/supergateway) and a tunnel:
+No Node, no install: connect to `https://mcp.unblockingapi.com/mcp`
+(Streamable HTTP) and send your key as a header. Same tools, same credits.
 
 ```bash
-UNBLOCKINGAPI_KEY=your_api_key_here \
-  npx -y supergateway --stdio "npx -y @unblockingapi/mcp" --port 8000
-# then e.g. cloudflared tunnel --url http://localhost:8000 → add https://…/sse in ChatGPT
+# Claude Code
+claude mcp add --transport http unblockingapi https://mcp.unblockingapi.com/mcp \
+  --header "Authorization: Bearer your_api_key_here"
+
+# VS Code
+code --add-mcp '{"name":"unblockingapi","type":"http","url":"https://mcp.unblockingapi.com/mcp","headers":{"Authorization":"Bearer your_api_key_here"}}'
 ```
+
+Cursor, Windsurf and other clients that take a URL plus headers:
+
+```json
+{
+  "mcpServers": {
+    "unblockingapi": {
+      "url": "https://mcp.unblockingapi.com/mcp",
+      "headers": { "Authorization": "Bearer your_api_key_here" }
+    }
+  }
+}
+```
+
+`X-Api-Key: your_api_key_here` works too. Claude.ai and Claude Desktop custom
+connectors sign in with OAuth instead of a header, which the hosted server does
+not offer yet; use the local server there for now. The local server is still
+the better fit for the Claude Code plugin, which also redirects Claude's
+built-in web fetch.
 
 ### Environment variables
 
@@ -175,9 +197,13 @@ npm run dev        # tsx watch
 npm run typecheck  # tsc --noEmit
 npm run build      # compile to dist/
 npm run smoke      # drive the built server over stdio (add UNBLOCKINGAPI_KEY for live fetches)
+npm run smoke:http # the same over HTTP against dist/http.js (or MCP_URL=https://mcp.unblockingapi.com/mcp)
+npm run start:http # the hosted server on :8080 (PORT)
 ```
 
-Repository layout: `src/` (server + API client), `.claude-plugin/` (Claude Code
+Repository layout: `src/` (`server.ts` tools, `index.ts` stdio entry,
+`http.ts` hosted entry, `client.ts` API client), `Dockerfile` (the hosted
+image, deployed to mcp.unblockingapi.com by `.github/workflows/deploy.yml`), `.claude-plugin/` (Claude Code
 plugin + marketplace manifests), `hooks/`, `skills/` and `commands/` (plugin
 behaviour), `docs/` (setup guides).
 

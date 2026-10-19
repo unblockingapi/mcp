@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Hosted server at `https://mcp.unblockingapi.com/mcp` (Streamable HTTP, stateless): send your key as `Authorization: Bearer <key>` or `X-Api-Key`. Runs `dist/http.js` (also the `unblockingapi-mcp-http` bin), built from the new `Dockerfile` and deployed by CI. `server.json` lists it under `remotes`.
+- `npm run smoke:http`, the smoke test over HTTP.
+
+### Changed
+
+- The tools moved to `src/server.ts` behind `createServer(client)`, shared by the stdio and HTTP entries. No change to the tools themselves.
+
 ## 0.5.1 — 2026-10-19
 
 ### Added

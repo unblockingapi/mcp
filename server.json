@@ -34,5 +34,20 @@
         }
       ]
     }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.unblockingapi.com/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer followed by your UnblockingAPI key from https://unblockingapi.com (500 free credits, no card), e.g. 'Bearer sk_...'.",
+          "isRequired": true,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
   ]
 }
