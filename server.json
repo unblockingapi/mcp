@@ -27,12 +27,6 @@
           "format": "string"
         },
         {
-          "name": "UNBLOCKINGAPI_BASE_URL",
-          "description": "Override the API base URL. Default https://api.unblockingapi.com",
-          "isRequired": false,
-          "format": "string"
-        },
-        {
           "name": "UNBLOCKINGAPI_TIMEOUT_MS",
           "description": "Per-request timeout in milliseconds. Default 180000.",
           "isRequired": false,
