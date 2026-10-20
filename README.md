@@ -2,9 +2,12 @@
 
 Official [Model Context Protocol](https://modelcontextprotocol.io) server and
 Claude Code plugin for [UnblockingAPI](https://unblockingapi.com). Gives AI
-agents (Claude, Cursor, VS Code, Zed, …) a real browser behind rotating
-residential proxies: fetch bot-protected and JavaScript-heavy pages, and parse
-any site a published template covers into structured JSON.
+apps (Claude, Cursor, VS Code, Lovable, Replit, …) a real browser behind
+rotating residential proxies: fetch bot-protected and JavaScript-heavy pages,
+and parse any site a published template covers into structured JSON.
+
+**Hosted at `https://mcp.unblockingapi.com/mcp`** — add it as a connector and
+sign in, no install. Or run it locally with `npx -y @unblockingapi/mcp`.
 
 ## Tools
 
@@ -36,22 +39,69 @@ If a parser fails because the site changed, you get raw HTML back with
 ## Setup
 
 You need an UnblockingAPI account — sign up at <https://unblockingapi.com> (500
-free credits, no card).
+free credits, no card). Then pick one:
 
-**Quickest:** connect to the [hosted server](#hosted-server) at
-`https://mcp.unblockingapi.com/mcp`. Claude.ai, Claude Desktop and Cursor sign
-you in with your account; nothing to install, no key to copy. The sections below
-run the server locally instead.
+1. **[Hosted server](#hosted-server)** — paste one URL into your app and sign in.
+   Nothing to install, no key to copy. Recommended for most apps.
+2. **[Claude Code plugin](#claude-code-plugin)** — the hosted tools plus a hook
+   that makes `unblock_fetch` Claude Code's web fetch.
+3. **[Run it locally](#run-it-locally)** — the same server over stdio with `npx`,
+   for those who prefer to run it themselves.
 
-Detailed guides: **[Claude](docs/claude-setup.md)** (Claude Code plugin, `claude mcp add`,
-Claude Desktop) · **[Cursor](docs/cursor-setup.md)** · other clients below.
+### Hosted server
 
-### Claude Code — plugin (recommended)
+```
+https://mcp.unblockingapi.com/mcp
+```
+
+Streamable HTTP. Apps that support MCP sign-in (OAuth) only need the URL: they
+open an UnblockingAPI page where you sign in and click *Allow*. The app never
+sees your key, and you can disconnect it any time under *Settings → Connected
+apps* at app.unblockingapi.com. Apps without sign-in send your key as
+`Authorization: Bearer <key>` (or `X-Api-Key: <key>`).
+
+| App | How | Guide |
+| --- | --- | --- |
+| Claude.ai, Claude Desktop | *Customize → Connectors → + Add → Add custom connector*, paste the URL, *Connect* | [unblockingapi.com/tools/claude](https://unblockingapi.com/tools/claude) |
+| Cursor | One-click link, or `"url"` in `~/.cursor/mcp.json`, then *Login* under Settings → MCP | [docs/cursor-setup.md](docs/cursor-setup.md) · [site](https://unblockingapi.com/tools/cursor) |
+| VS Code (Copilot) | `code --add-mcp '{"name":"unblockingapi","type":"http","url":"https://mcp.unblockingapi.com/mcp"}'`, sign in on first use | [site](https://unblockingapi.com/tools/vscode) |
+| Windsurf | `"serverUrl"` in the MCP config (Cascade → MCPs → Open MCP config file) | [site](https://unblockingapi.com/tools/windsurf) |
+| Lovable | *Connectors → + → MCP server*, OAuth | [site](https://unblockingapi.com/tools/lovable) |
+| Replit | *Integrations → MCP Servers → + Add MCP server*, *Test & save* | [site](https://unblockingapi.com/tools/replit) |
+| Bolt | *Connectors → Manage connectors → Custom MCP server*, transport HTTP, MCP OAuth | [site](https://unblockingapi.com/tools/bolt) |
+| Zed | `"url"` (+ `"headers"`) under `context_servers` | [site](https://unblockingapi.com/tools/zed) |
+| Cline | Remote Servers tab, `"type": "streamableHttp"` + key header | [site](https://unblockingapi.com/tools/cline) |
+| Gemini CLI / Antigravity | `gemini mcp add --transport http …` / `"serverUrl"` + key header | [site](https://unblockingapi.com/tools/gemini-cli) |
+| Claude API | `mcp_servers` entry, your key as `authorization_token` | [site](https://unblockingapi.com/tools/claude-api) |
+| n8n | MCP Client Tool, HTTP Streamable, Bearer Auth | [site](https://unblockingapi.com/tools/n8n) |
+
+With a key instead of signing in:
+
+```bash
+# Claude Code
+claude mcp add --transport http unblockingapi https://mcp.unblockingapi.com/mcp \
+  --header "Authorization: Bearer your_api_key_here"
+```
+
+```json
+{
+  "mcpServers": {
+    "unblockingapi": {
+      "url": "https://mcp.unblockingapi.com/mcp",
+      "headers": { "Authorization": "Bearer your_api_key_here" }
+    }
+  }
+}
+```
+
+(Some apps name the URL key `serverUrl` or `httpUrl`; VS Code uses `servers`
+with `"type": "http"`.) Agent frameworks: see
+[Vercel AI SDK and LangChain](https://unblockingapi.com/guides/connect-ai-agent-frameworks-to-the-web).
+
+### Claude Code plugin
 
 The plugin bundles the MCP server, stores your key, and makes Claude use
-`unblock_fetch` instead of its built-in web fetch.
-
-In Claude Code, three lines:
+`unblock_fetch` instead of its built-in web fetch. In Claude Code:
 
 ```
 /plugin marketplace add unblockingapi/mcp
@@ -62,27 +112,23 @@ In Claude Code, three lines:
 **The third line matters.** Installing does not prompt for your key and succeeds
 without one, so skipping it leaves every fetch failing. New to this? Run
 `/unblockingapi:setup` instead and Claude walks you through it, then checks that
-it works. From a terminal you can
-do it in one shot instead, but `--config` only applies on a fresh install:
+it works. Full walkthrough: [docs/claude-setup.md](docs/claude-setup.md).
+
+### Run it locally
+
+The same server over stdio. Needs Node.js 18+ and your key in
+`UNBLOCKINGAPI_KEY`.
 
 ```bash
-claude plugin install unblockingapi@unblockingapi-plugins --config api_key=your_api_key_here
+# Claude Code
+claude mcp add unblockingapi -e UNBLOCKINGAPI_KEY=your_api_key_here -- npx -y @unblockingapi/mcp
+
+# VS Code
+code --add-mcp '{"name":"unblockingapi","command":"npx","args":["-y","@unblockingapi/mcp"],"env":{"UNBLOCKINGAPI_KEY":"your_api_key_here"}}'
 ```
 
-Full walkthrough: [docs/claude-setup.md](docs/claude-setup.md).
-
-### Claude Code — plain MCP server
-
-```bash
-claude mcp add unblockingapi \
-  -e UNBLOCKINGAPI_KEY=your_api_key_here \
-  -- npx -y @unblockingapi/mcp
-```
-
-### Claude Desktop
-
-Edit `claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`,
-Windows: `%APPDATA%\Claude\`), then restart Claude:
+Claude Desktop (`claude_desktop_config.json`; restart after editing), Cursor
+(`~/.cursor/mcp.json`) and most other apps take this block:
 
 ```json
 {
@@ -96,68 +142,11 @@ Windows: `%APPDATA%\Claude\`), then restart Claude:
 }
 ```
 
-### Cursor
+Agentic clients that edit their own config will also set it up if you ask:
+"Install the `@unblockingapi/mcp` MCP server. My API key is `sk_xxx`. It runs over
+stdio via `npx -y @unblockingapi/mcp` and needs the env var `UNBLOCKINGAPI_KEY`."
 
-Add the same block to `~/.cursor/mcp.json` (every project) or a project's
-`.cursor/mcp.json`. See [docs/cursor-setup.md](docs/cursor-setup.md) for the one-click
-install link and a rule that makes the agent prefer `unblock_fetch`.
-
-### VS Code (Copilot agent mode)
-
-```bash
-code --add-mcp '{"name":"unblockingapi","command":"npx","args":["-y","@unblockingapi/mcp"],"env":{"UNBLOCKINGAPI_KEY":"your_api_key_here"}}'
-```
-
-### Install by prompt
-
-Agentic clients that can edit their own config (Claude Code, Cursor's agent,
-Cline, …) will set it up if you ask:
-
-> Install the `@unblockingapi/mcp` MCP server. My API key is `sk_xxx`. It runs
-> over stdio via `npx -y @unblockingapi/mcp` and needs the env var
-> `UNBLOCKINGAPI_KEY`.
-
-### Hosted server
-
-No Node, no install: connect to `https://mcp.unblockingapi.com/mcp`
-(Streamable HTTP). Same tools, same credits. Sign in with your UnblockingAPI
-account, or send your key as a header.
-
-**Claude.ai and Claude Desktop:** Settings → Connectors → *Add custom
-connector*, paste `https://mcp.unblockingapi.com/mcp`, then *Connect* and allow
-access on the UnblockingAPI page that opens. No key to copy; you can disconnect
-it any time under Settings → *Connected apps* at app.unblockingapi.com.
-
-Clients that support OAuth do the same when you add the URL without a header.
-With a key instead:
-
-```bash
-# Claude Code
-claude mcp add --transport http unblockingapi https://mcp.unblockingapi.com/mcp \
-  --header "Authorization: Bearer your_api_key_here"
-
-# VS Code
-code --add-mcp '{"name":"unblockingapi","type":"http","url":"https://mcp.unblockingapi.com/mcp","headers":{"Authorization":"Bearer your_api_key_here"}}'
-```
-
-Cursor, Windsurf and other clients that take a URL plus headers:
-
-```json
-{
-  "mcpServers": {
-    "unblockingapi": {
-      "url": "https://mcp.unblockingapi.com/mcp",
-      "headers": { "Authorization": "Bearer your_api_key_here" }
-    }
-  }
-}
-```
-
-`X-Api-Key: your_api_key_here` works too. The local server is still the better
-fit for the Claude Code plugin, which also redirects Claude's built-in web
-fetch.
-
-### Environment variables
+### Environment variables (local server)
 
 | Var | Required | Default | Purpose |
 | --- | --- | --- | --- |

@@ -23,7 +23,8 @@ Pick the path for how you use Claude:
 UnblockingAPI runs a hosted MCP server, so there is nothing to install and no
 key to paste: you sign in with your UnblockingAPI account.
 
-**1.** In Claude, open *Settings → Connectors* and click **Add custom connector**.
+**1.** In Claude, open *Customize → Connectors*, click **+ Add** and choose
+**Add custom connector**.
 
 **2.** Name it `UnblockingAPI` and paste the URL:
 
@@ -31,17 +32,20 @@ key to paste: you sign in with your UnblockingAPI account.
 https://mcp.unblockingapi.com/mcp
 ```
 
-Leave the OAuth settings as they are (*Register automatically*).
+Keep the detected sign-in settings (*Register automatically* as the OAuth
+client) and click **Add**.
 
 **3.** Click **Connect**. An UnblockingAPI page opens: sign in, check that it asks
 to connect Claude and will send you back to claude.ai, and click **Allow**.
 
-**4.** In a chat, turn the connector on from the tools menu and ask Claude to read
-a page. Claude never sees your API key, and you can disconnect it any time under
+**4.** In a chat, open **+ → Connectors** and switch UnblockingAPI on, then ask
+Claude to read a page. To have Claude read every page this way, turn off its
+built-in *Web search* in the same menu. Claude never sees your API key, and you can disconnect it any time under
 *Settings → Connected apps* at app.unblockingapi.com.
 
-On a Team or Enterprise plan, an owner may need to add the connector for the
-organization first.
+Custom connectors work on every Claude plan (the free plan allows one). On Team
+and Enterprise, an owner adds it under *Organization settings → Connectors* and
+members then click *Connect*.
 
 ---
 
