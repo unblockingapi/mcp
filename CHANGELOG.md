@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 — unreleased
+
+Publish to npm and republish `server.json` to the MCP Registry after merge.
+
+### Fixed
+
+- `find_templates(url)` missed templates whose path uses the catalogue's wildcards. A `*` segment, a `*` inside a segment or a non-trailing `**` was compared literally, so templates such as `kjellberg/idealista-search` (`/*/**`) and `kjellberg/eniro-foretag` (`/*/f%C3%B6retag`) never matched their own pages. Matching now follows the API's `Templates::Matcher`: segment prefixes, `*` as one segment, `**` as any deeper path, and `*.` / `.*` host wildcards. `/search` no longer matches `/searchfoo`.
+
+### Changed
+
+- Package, plugin and marketplace descriptions and keywords no longer say "SERP" or "google-search". Search engines are templates like any other site; there has been no search tool since 0.4.0.
+- README lists the two API endpoints the tools call and maps the removed tools (`google_search`, `list_templates`, `idealista_property`, `ahrefs_website_authority`) to the current calls.
+- `npm test`: unit tests for template matching, the registered tool set and version sync across `package.json`, `server.json` and the plugin manifests.
 
 ### Added
 
