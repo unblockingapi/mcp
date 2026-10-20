@@ -20,7 +20,7 @@ const page = await unblock(`https://www.google.com/search?${q}`, {
   location: country,          // search from that country
 });
 const results = page.response.results;  // [{ position, title, description, url }]
-const hit = results.find((r) => hostOf(r.url).endsWith(domain));
+const hit = results.find((r) => { const h = hostOf(r.url); return h === domain || h.endsWith("." + domain); });  // exact host or a real subdomain, never notexample.com
 await saveRanking({ keywordId, position: hit?.position ?? null, url: hit?.url, title: hit?.title, top: results.slice(0, 10) });
 
 function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; } }

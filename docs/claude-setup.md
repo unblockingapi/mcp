@@ -13,7 +13,7 @@ Pick the path for how you use Claude:
 | --- | --- | --- |
 | **Claude.ai** or **Claude Desktop** (chat) | [Add the connector](#claudeai-and-claude-desktop-connector) — recommended, no key to copy | 1 min |
 | **Claude Code** (terminal, VS Code, desktop app) | [Install the plugin from the UI](#install-it-from-the-claude-code-ui) — recommended | 1 min |
-| Claude Code, but you only want the tools | [`claude mcp add`](#claude-code-mcp-server-only) | 1 min |
+| Claude Code, but you only want the tools | [`claude mcp add` with the hosted server](#claude-code-mcp-server-only) | 1 min |
 | Claude Desktop, running the server locally | [Edit the config file](#claude-desktop-local-server) | 2 min |
 
 ---
@@ -90,7 +90,7 @@ and paste your key into *UnblockingAPI key*. It is stored securely, never in a
 file in your repo.
 
 **4. Check it landed.** Run `/mcp` — `unblockingapi` should show as connected
-with two tools. Then try:
+with three tools: `unblock_fetch`, `find_templates` and `get_build_guide`. Then try:
 
 > Use unblockingapi to get the Google results for "wikipedia" as structured data.
 
@@ -140,8 +140,21 @@ fetched with `npx …@latest`, so new tools arrive without reinstalling.
 ## Claude Code: MCP server only
 
 If you'd rather not install a plugin, register the server directly. You get the
-same two tools; Claude will usually pick `unblock_fetch` on its own because the
-server describes it well, but `WebFetch` stays available.
+same three tools: `unblock_fetch`, `find_templates` and `get_build_guide`; Claude will usually pick `unblock_fetch` on its own
+because the server describes it well, but `WebFetch` stays available.
+
+**Hosted (recommended)** — nothing to install, and you sign in instead of
+pasting a key:
+
+```bash
+claude mcp add --transport http unblockingapi https://mcp.unblockingapi.com/mcp
+```
+
+Then run `/mcp`, pick `unblockingapi` and choose **Authenticate**: an
+UnblockingAPI page opens, sign in and click **Allow**.
+
+**Local, with `npx`** — runs the server on your machine with your API key
+(needs Node.js 18+):
 
 ```bash
 claude mcp add unblockingapi \
@@ -149,8 +162,8 @@ claude mcp add unblockingapi \
   -- npx -y @unblockingapi/mcp
 ```
 
-Add `--scope project` to share it with your team via `.mcp.json`, or leave it at
-the default user scope so it follows you into every project.
+Either way, add `--scope project` to share it with your team via `.mcp.json`,
+or leave it at the default user scope so it follows you into every project.
 
 Verify with `claude mcp list` — `unblockingapi` should read **Connected**.
 
@@ -191,7 +204,7 @@ config file and needs a restart after you edit it.
 ```
 
 **3. Quit and reopen Claude Desktop.** The tools icon in the chat box should
-list `unblock_fetch` and `find_templates`.
+list `unblock_fetch`, `find_templates` and `get_build_guide`.
 
 Claude Desktop needs Node.js 18+ on your PATH for `npx`. If the server fails to
 start, install Node from <https://nodejs.org> and restart the app.
