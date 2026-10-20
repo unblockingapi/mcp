@@ -1,18 +1,17 @@
 # Changelog
 
-## 0.7.0 — unreleased
+## 0.8.0 — 2026-10-20
 
-Publish to npm and republish `server.json` to the MCP Registry after merge.
+### Added
 
-### Fixed
+- `unblock_fetch` returns **Markdown** by default (`format: "markdown" | "html"`): a 1.16 MB reddit listing becomes ~50 KB, so whole pages fit instead of being cut at `max_chars`.
+- `select`: a CSS selector that keeps only the matching elements (the posts of a feed, the rows of a table), as Markdown or HTML.
+- Re-reading the same fetch within 10 minutes (another `select` or `format`) reuses the page already fetched: no request, no credit. `fresh: true` fetches again.
+- Notes that tell the agent how to fix an incomplete page: every rendered page fetched without scrolling says that feeds load more with `scroll_steps`, a `select` that matches nothing or a cut body says what to do next.
+- `get_build_guide`: guides for building apps on the REST API with plain HTTP — the API, getting complete pages, templates, and recipes for a rank tracker, a listings aggregator and a price monitor. Shipped as Markdown in `guides/`.
+- `find_templates` includes each template's JSON output shape when it returns three or fewer.
 
-- `find_templates(url)` missed templates whose path uses the catalogue's wildcards. A `*` segment, a `*` inside a segment or a non-trailing `**` was compared literally, so templates such as `kjellberg/idealista-search` (`/*/**`) and `kjellberg/eniro-foretag` (`/*/f%C3%B6retag`) never matched their own pages. Matching now follows the API's `Templates::Matcher`: segment prefixes, `*` as one segment, `**` as any deeper path, and `*.` / `.*` host wildcards. `/search` no longer matches `/searchfoo`.
-
-### Changed
-
-- Package, plugin and marketplace descriptions and keywords no longer say "SERP" or "google-search". Search engines are templates like any other site; there has been no search tool since 0.4.0.
-- README lists the two API endpoints the tools call and maps the removed tools (`google_search`, `list_templates`, `idealista_property`, `ahrefs_website_authority`) to the current calls.
-- `npm test`: unit tests for template matching, the registered tool set and version sync across `package.json`, `server.json` and the plugin manifests.
+## 0.7.0 — 2026-10-20
 
 ### Added
 
@@ -21,6 +20,12 @@ Publish to npm and republish `server.json` to the MCP Registry after merge.
 ### Changed
 
 - `server.json`: the hosted server's `Authorization` header is optional now.
+- `unblock_fetch`'s description now opens by telling the model to use it instead of any built-in web fetch or browsing tool.
+- Docs lead with the hosted server: the Claude guide adds the Claude.ai / Claude Desktop connector, the Cursor guide a one-click hosted install that signs in with OAuth. `package.json` and the plugin drop the `serp` / `google-search` keywords left from the retired search tools.
+
+### Fixed
+
+- `find_templates` matched template URL patterns with its own simplified rules, which understood `**` only at the end of a path: a pattern with `*` in it, such as `idealista.com /*/**` or `eniro.se /*/f%C3%B6retag`, never matched any URL. It now follows the same grammar as the editor and the template library (Rails' `Templates::Matcher`): `*` is one segment, `**` the rest, `*` inside a segment any run of characters, and hosts match exactly unless the pattern says `*.` or `.*`.
 
 ## 0.6.0 — 2026-10-19
 

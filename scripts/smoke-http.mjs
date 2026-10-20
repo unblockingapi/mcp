@@ -107,7 +107,7 @@ try {
     const c = await connect(key || REFUSED_KEY);
     check("instructions over http", (c.getInstructions() ?? "").includes("find_templates"));
     const { tools } = await c.listTools();
-    check("tools over http", tools.map((t) => t.name).sort().join(",") === "find_templates,unblock_fetch");
+    check("tools over http", tools.map((t) => t.name).sort().join(",") === "find_templates,get_build_guide,unblock_fetch");
     const t = await c.callTool({ name: "find_templates", arguments: { url: "https://www.google.com/search?q=x" } });
     check("find_templates (keyless) over http", !t.isError && text(t).includes("kjellberg/google-search"), text(t).split("\n")[0]);
     if (!key) {

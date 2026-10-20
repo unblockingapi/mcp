@@ -1,15 +1,16 @@
 {
   "name": "@unblockingapi/mcp",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "mcpName": "io.github.unblockingapi/mcp",
-  "description": "Official MCP server for UnblockingAPI: fetch bot-protected and JavaScript-heavy pages for AI agents, or parse them to JSON with templates",
+  "description": "Official MCP server for UnblockingAPI \u2014 read any web page (bot-protected, JavaScript-heavy, geo-blocked) and parse it to JSON with templates",
   "type": "module",
   "bin": {
     "unblockingapi-mcp": "dist/index.js",
     "unblockingapi-mcp-http": "dist/http.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "guides"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -17,7 +18,6 @@
     "start": "node dist/index.js",
     "start:http": "node dist/http.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "tsx --test test/*.test.ts",
     "prepublishOnly": "npm run build",
     "smoke": "node scripts/smoke.mjs",
     "smoke:http": "node scripts/smoke-http.mjs"
@@ -26,10 +26,12 @@
     "mcp",
     "model-context-protocol",
     "unblockingapi",
-    "scraping",
+    "web-fetch",
+    "web-scraping",
     "web-unblocking",
+    "browser",
+    "proxy",
     "templates",
-    "structured-data",
     "ai",
     "claude"
   ],
@@ -47,10 +49,13 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "linkedom": "^0.18.13",
+    "turndown": "^7.2.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/turndown": "^5.0.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

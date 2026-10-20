@@ -29,6 +29,29 @@ const LIVE = { timeout: 200_000 };
 
 const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
 
+// --- 0. Template URL matching (same grammar as Rails' Templates::Matcher) ----
+{
+  const { templateMatchesUrl } = await import("../dist/server.js");
+  const t = (host, path) => ({ host, path });
+  const cases = [
+    [t("idealista.com", "/*/**"), "https://www.idealista.com/inmueble/112482231/", true],
+    [t("idealista.com", "/*/**"), "https://www.idealista.com/", false],
+    [t("eniro.se", "/*/f%C3%B6retag"), "https://www.eniro.se/stockholm/f%C3%B6retag", true],
+    [t("eniro.se", "/*/f%C3%B6retag"), "https://www.eniro.se/stockholm/personer", false],
+    [t("google.com", "/search"), "https://www.google.com/search?q=x", true],
+    [t("google.com", "/search"), "https://www.google.com/searchfoo", false],
+    [t("reddit.com", "/r/**"), "https://www.reddit.com/r/rails/comments/1", true],
+    [t("reddit.com", "/r/**"), "https://old.reddit.com/r/rails", false],
+    [t("*.reddit.com", "/r/**"), "https://old.reddit.com/r/rails", true],
+    [t("amazon.*", "/dp/*"), "https://www.amazon.co.uk/dp/B0", true],
+    [t("example.com", "/p/item-*.html"), "https://example.com/p/item-42.html", true],
+    [t("example.com", "/p/item-*.html"), "https://example.com/p/other-42.html", false],
+    [t("hemnet.se", "/"), "https://www.hemnet.se/bostad/x", true],
+  ];
+  const wrong = cases.filter(([tpl, url, want]) => templateMatchesUrl(tpl, url) !== want);
+  check("template URL matching", wrong.length === 0, wrong.map(([tpl, url]) => `${tpl.host}${tpl.path} vs ${url}`).join("; "));
+}
+
 // --- 1. No key: server starts, tools listed, fetch fails cleanly -------------
 {
   const c = await connect({ UNBLOCKINGAPI_KEY: "" });
@@ -36,7 +59,7 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
   check("server instructions present", !!instructions && instructions.includes("render_reason") && instructions.includes("find_templates"));
   const { tools } = await c.listTools();
   const names = tools.map((t) => t.name).sort();
-  check("tools", JSON.stringify(names) === JSON.stringify(["find_templates", "unblock_fetch"]), names.join(","));
+  check("tools", JSON.stringify(names) === JSON.stringify(["find_templates", "get_build_guide", "unblock_fetch"]), names.join(","));
   const fetchTool = tools.find((t) => t.name === "unblock_fetch");
   const props = Object.keys(fetchTool.inputSchema.properties).sort();
   check(
@@ -71,8 +94,16 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
 
   const t = await c.callTool({ name: "find_templates", arguments: {} });
   check("find_templates (keyless)", !t.isError && text(t).includes("kjellberg/google-search"), text(t).split("\n")[0]);
+  const ti = await c.callTool({ name: "find_templates", arguments: { url: "https://www.idealista.com/venta-viviendas/estepona-malaga/" } });
+  check("find_templates matches a mid-path wildcard", !ti.isError && text(ti).includes("kjellberg/idealista-search"), text(ti).split("\n")[0]);
   const ts = await c.callTool({ name: "find_templates", arguments: { url: "https://www.google.com/search?q=wikipedia" } });
   check("find_templates matches a URL", !ts.isError && text(ts).includes("kjellberg/google-search"), text(ts).split("\n")[0]);
+  const g = await c.callTool({ name: "get_build_guide", arguments: { topic: "rank-tracker" } });
+  check("get_build_guide returns a recipe", !g.isError && text(g).includes("kjellberg/google-search") && text(g).includes("Other guides"), text(g).split("\n")[0]);
+  const ga = await c.callTool({ name: "get_build_guide", arguments: { topic: "api" } });
+  check("get_build_guide api covers the REST call", !ga.isError && text(ga).includes("api.unblockingapi.com/unblock") && text(ga).includes("X-Api-Key"));
+  const ts1 = await c.callTool({ name: "find_templates", arguments: { url: "https://www.google.com/search?q=x" } });
+  check("find_templates includes the output shape", !ts1.isError && text(ts1).includes("returns:") && text(ts1).includes("position"), text(ts1).split("\n").find((l) => l.includes("returns")) ?? "");
   const tm = await c.callTool({ name: "find_templates", arguments: { url: "https://example.com/nothing" } });
   check("find_templates reports no match", !tm.isError && text(tm).includes("No template covers"), text(tm).split("\n")[0]);
   await c.close();
