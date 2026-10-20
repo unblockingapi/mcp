@@ -35,8 +35,35 @@ find_templates(url: "https://www.google.com/search?q=…")   → kjellberg/googl
 unblock_fetch(url: "…", template: "kjellberg/google-search") → { query, results, related_searches }
 ```
 
+`find_templates` matches the URL against each template's host and path the
+same way the template library does (`*` is one path segment, `**` any deeper
+path, hosts exact unless the pattern says `*.` or `.*`).
+
 If a parser fails because the site changed, you get raw HTML back with
 `parse_error: true` rather than an error.
+
+### API endpoints behind the tools
+
+| Tool | Calls | Key |
+| --- | --- | --- |
+| `unblock_fetch` | `POST https://api.unblockingapi.com/unblock` (JSON body; `template` selects a template) | `X-Api-Key` |
+| `find_templates` | `GET https://api.unblockingapi.com/templates.json` (the public catalogue, cached for 5 minutes), plus `GET https://app.unblockingapi.com/public/v1/templates/<handle>/<slug>` for the output shape when three or fewer match | none |
+| `get_build_guide` | nothing: the guides ship in the package (`guides/`) | none |
+
+Templates are not endpoints of their own: there is no `/api/google-search` or
+`/api/<template>`, only `/unblock` with `template` set.
+
+### Removed tools
+
+Older versions, and listings copied from them, mention tools that no longer
+exist:
+
+| Old tool | Removed in | Use instead |
+| --- | --- | --- |
+| `google_search` | 0.4.0 | `find_templates(url: "https://www.google.com/search?q=…")`, then `unblock_fetch(url, template: "kjellberg/google-search")` |
+| `list_templates` | 0.4.0 | `find_templates` (now also takes `url`) |
+| `idealista_property` | 0.3.0 | `find_templates(url)` for the Idealista page, then `unblock_fetch` with the template it returns |
+| `ahrefs_website_authority` | before 0.2.0 (never on npm) | `find_templates(url: "https://ahrefs.com/website-authority-checker/?input=example.com")` |
 
 ## Setup
 
