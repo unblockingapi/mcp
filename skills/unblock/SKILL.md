@@ -57,6 +57,24 @@ If a template's parser fails because the site changed, you get the raw HTML back
 with `parse_error: true` in the metadata rather than an error. Parse it yourself
 in that case.
 
+## Getting the part you need
+
+- The body is **Markdown** by default. Use `format: "html"` when you need markup
+  or attributes, and `select` (a CSS selector) to keep only the part you need,
+  e.g. the items of a list. Re-reading the same fetch with another `select` or
+  `format` reuses the page: no new request, no credit.
+- **Feeds and lists that load more as you scroll** (reddit, social feeds,
+  infinite-scroll shops) come back with their first screen only. Fetch again
+  with `scroll_steps: 3`-`5`. The response's notes say when this applies.
+- **Content that appears late**: `wait_for: "<selector>"` with `wait_state: "nonempty"`.
+
+## Building an app on UnblockingAPI
+
+Before writing code that calls UnblockingAPI (a rank tracker, an aggregator, a
+monitor, any script or backend), call `get_build_guide` with topic `api`, then
+the recipe that fits. Apps call the REST API directly with plain HTTP and keep
+the key server-side.
+
 ## Reading the result
 
 The tool output starts with a JSON metadata block (`status`, `http_response_code`,

@@ -152,7 +152,8 @@ export interface TemplateCatalogue {
 }
 
 export class UnblockingApiClient {
-  private readonly apiKey: string;
+  /** Also the page cache's partition: callers never share cached pages. */
+  readonly apiKey: string;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0 — 2026-10-20
+
+### Added
+
+- `unblock_fetch` returns **Markdown** by default (`format: "markdown" | "html"`): a 1.16 MB reddit listing becomes ~50 KB, so whole pages fit instead of being cut at `max_chars`.
+- `select`: a CSS selector that keeps only the matching elements (the posts of a feed, the rows of a table), as Markdown or HTML.
+- Re-reading the same fetch within 10 minutes (another `select` or `format`) reuses the page already fetched: no request, no credit. `fresh: true` fetches again.
+- Notes that tell the agent how to fix an incomplete page: every rendered page fetched without scrolling says that feeds load more with `scroll_steps`, a `select` that matches nothing or a cut body says what to do next.
+- `get_build_guide`: guides for building apps on the REST API with plain HTTP — the API, getting complete pages, templates, and recipes for a rank tracker, a listings aggregator and a price monitor. Shipped as Markdown in `guides/`.
+- `find_templates` includes each template's JSON output shape when it returns three or fewer.
+
 ## 0.7.0 — 2026-10-20
 
 ### Added

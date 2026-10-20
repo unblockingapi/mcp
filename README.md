@@ -13,12 +13,14 @@ sign in, no install. Or run it locally with `npx -y @unblockingapi/mcp`.
 
 | Tool | What it does | Cost |
 | --- | --- | --- |
-| `unblock_fetch` | Fetch any URL, bypassing anti-bot walls, CAPTCHAs and geo-blocks. Picks plain HTTP or a real browser per site by itself; `render` forces one. Pass `template` to get structured JSON instead of HTML. | 1 credit per success |
-| `find_templates` | Find a template that parses a site into JSON — by the URL you are about to fetch, by keyword, or by category. | free |
+| `unblock_fetch` | Fetch any URL, bypassing anti-bot walls, CAPTCHAs and geo-blocks. Picks plain HTTP or a real browser per site by itself. Returns Markdown (or HTML), optionally narrowed with a CSS `select`; pass `template` to get structured JSON instead. | 1 credit per success; re-reading the same fetch is free |
+| `find_templates` | Find a template that parses a site into JSON — by the URL you are about to fetch, by keyword, or by category — with its output shape. | free |
+| `get_build_guide` | Guides for building apps on the REST API with plain HTTP: API reference, getting complete pages, templates, and recipes (rank tracker, listings aggregator, price monitor). | free |
 
-Failed requests are free. The server also ships instructions and a skill so the
-agent lets the API choose plain fetch or browser per site, and
-checks for a template before parsing a known site by hand.
+Failed requests are free. The server's instructions, tool descriptions and the
+notes in each response steer the agent: let the API choose plain fetch or
+browser, check for a template before parsing a known site, scroll or wait when
+content is missing, and read the build guide before writing code that calls the API.
 
 ### Templates
 
@@ -181,11 +183,15 @@ Once connected, ask your agent things like:
 | `detect_ms` | 0–25000 | Implies a browser. How long to probe `wait_rules` (default 800). |
 | `max_age` | 0–300 | Accept a cached copy this many seconds old. Hits return in ms and carry `cached: true`. |
 | `template` | string | Parse with a published template (`handle/name`, or `handle/name@3` to pin a version) and return JSON. Forces that template's fetch settings. Find one with `find_templates`. |
-| `max_chars` | integer | Cap on returned body (default 120000). Longer bodies are truncated with a note. |
+| `format` | `markdown` \| `html` | How the page comes back (default `markdown`: a fraction of the size). Template results are always JSON. |
+| `select` | string | CSS selector: return only the matching elements, in `format`. |
+| `fresh` | boolean | Fetch again even if this exact fetch was made in the last 10 minutes. By default that copy is reused — so re-reading it with another `select` or `format` costs nothing. |
+| `max_chars` | integer | Cap on returned body (default 120000), after `format`/`select`. Longer bodies are cut with a note. |
 
 Responses start with a JSON metadata block (`job_id`, `status`, `http_response_code`,
 `response_time_ms`, `render`, `render_reason`, `readiness`, `template_version`, `location`, `cached`, `parse_error`, `truncated`, …),
-then `---`, then the HTML or JSON body. API errors (bad key, out of credits,
+then notes on what to try next (scroll for more, a narrower `select`, …), then `---`
+and the Markdown, HTML or JSON body. API errors (bad key, out of credits,
 unknown template, invalid params, concurrency limit) come back as clear tool errors.
 
 Full API reference: <https://unblockingapi.com/docs>.

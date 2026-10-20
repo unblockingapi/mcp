@@ -1,6 +1,6 @@
 {
   "name": "@unblockingapi/mcp",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "mcpName": "io.github.unblockingapi/mcp",
   "description": "Official MCP server for UnblockingAPI \u2014 read any web page (bot-protected, JavaScript-heavy, geo-blocked) and parse it to JSON with templates",
   "type": "module",
@@ -9,7 +9,8 @@
     "unblockingapi-mcp-http": "dist/http.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "guides"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -48,10 +49,13 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "linkedom": "^0.18.13",
+    "turndown": "^7.2.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
+    "@types/turndown": "^5.0.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
