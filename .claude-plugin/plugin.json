@@ -12,12 +12,12 @@
   "license": "MIT",
   "keywords": [
     "mcp",
+    "web-fetch",
     "web-unblocking",
     "scraping",
     "browser",
     "proxy",
-    "serp",
-    "google-search"
+    "templates"
   ],
   "userConfig": {
     "api_key": {

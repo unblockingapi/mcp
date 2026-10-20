@@ -35,8 +35,13 @@ If a parser fails because the site changed, you get raw HTML back with
 
 ## Setup
 
-You need an UnblockingAPI key — sign up at <https://unblockingapi.com> (500 free
-credits, no card).
+You need an UnblockingAPI account — sign up at <https://unblockingapi.com> (500
+free credits, no card).
+
+**Quickest:** connect to the [hosted server](#hosted-server) at
+`https://mcp.unblockingapi.com/mcp`. Claude.ai, Claude Desktop and Cursor sign
+you in with your account; nothing to install, no key to copy. The sections below
+run the server locally instead.
 
 Detailed guides: **[Claude](docs/claude-setup.md)** (Claude Code plugin, `claude mcp add`,
 Claude Desktop) · **[Cursor](docs/cursor-setup.md)** · other clients below.

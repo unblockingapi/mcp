@@ -4,16 +4,44 @@ Give Claude a real browser. Once connected, Claude reads bot-protected pages,
 renders JavaScript when a page needs it, and pulls structured JSON from any site
 a published template covers — all through your own UnblockingAPI key.
 
-**Before you start:** sign up at <https://unblockingapi.com> and copy your API key
-from the dashboard. New accounts get 500 free credits, no card required.
+**Before you start:** sign up at <https://unblockingapi.com>. New accounts get
+500 free credits, no card required.
 
 Pick the path for how you use Claude:
 
 | You use… | Do this | Time |
 | --- | --- | --- |
+| **Claude.ai** or **Claude Desktop** (chat) | [Add the connector](#claudeai-and-claude-desktop-connector) — recommended, no key to copy | 1 min |
 | **Claude Code** (terminal, VS Code, desktop app) | [Install the plugin from the UI](#install-it-from-the-claude-code-ui) — recommended | 1 min |
 | Claude Code, but you only want the tools | [`claude mcp add`](#claude-code-mcp-server-only) | 1 min |
-| **Claude Desktop** (chat app) | [Edit the config file](#claude-desktop) | 2 min |
+| Claude Desktop, running the server locally | [Edit the config file](#claude-desktop-local-server) | 2 min |
+
+---
+
+## Claude.ai and Claude Desktop: connector
+
+UnblockingAPI runs a hosted MCP server, so there is nothing to install and no
+key to paste: you sign in with your UnblockingAPI account.
+
+**1.** In Claude, open *Settings → Connectors* and click **Add custom connector**.
+
+**2.** Name it `UnblockingAPI` and paste the URL:
+
+```
+https://mcp.unblockingapi.com/mcp
+```
+
+Leave the OAuth settings as they are (*Register automatically*).
+
+**3.** Click **Connect**. An UnblockingAPI page opens: sign in, check that it asks
+to connect Claude and will send you back to claude.ai, and click **Allow**.
+
+**4.** In a chat, turn the connector on from the tools menu and ask Claude to read
+a page. Claude never sees your API key, and you can disconnect it any time under
+*Settings → Connected apps* at app.unblockingapi.com.
+
+On a Team or Enterprise plan, an owner may need to add the connector for the
+organization first.
 
 ---
 
@@ -131,10 +159,11 @@ instead of WebFetch. Leave render unset; the API picks plain fetch or browser it
 
 ---
 
-## Claude Desktop
+## Claude Desktop: local server
 
-Claude Desktop reads MCP servers from a config file and needs a restart after
-you edit it.
+The [connector](#claudeai-and-claude-desktop-connector) is simpler. To run the
+server on your own machine instead, Claude Desktop reads MCP servers from a
+config file and needs a restart after you edit it.
 
 **1. Open the config file:**
 
@@ -181,6 +210,7 @@ the same as plain ones but take longer, which is why Claude tries plain first.
 
 | Symptom | Fix |
 | --- | --- |
+| The connector's sign-in page says the connection can't continue | Remove the connector and add it again; Claude registers itself afresh. |
 | "No UnblockingAPI key is configured" | The plugin was installed without a key. Run `/plugin configure unblockingapi@unblockingapi-plugins`. Manual installs: check the `env` block / `-e` flag. |
 | `/plugin configure` says the plugin is unknown | The marketplace name is part of the id — use the full `unblockingapi@unblockingapi-plugins`. |
 | `--config` had no effect | It only applies on a fresh install. Uninstall first, or use `/plugin configure`. |
