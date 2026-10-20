@@ -36,7 +36,8 @@ unblock_fetch(url: "…", template: "kjellberg/google-search") → { query, resu
 ```
 
 `find_templates` matches the URL against each template's host and path the
-same way the API does (`*` is one path segment, `**` any deeper path).
+same way the template library does (`*` is one path segment, `**` any deeper
+path, hosts exact unless the pattern says `*.` or `.*`).
 
 If a parser fails because the site changed, you get raw HTML back with
 `parse_error: true` rather than an error.
@@ -46,10 +47,11 @@ If a parser fails because the site changed, you get raw HTML back with
 | Tool | Calls | Key |
 | --- | --- | --- |
 | `unblock_fetch` | `POST https://api.unblockingapi.com/unblock` (JSON body; `template` selects a template) | `X-Api-Key` |
-| `find_templates` | `GET https://api.unblockingapi.com/templates.json` (the public catalogue, cached for 5 minutes) | none |
+| `find_templates` | `GET https://api.unblockingapi.com/templates.json` (the public catalogue, cached for 5 minutes), plus `GET https://app.unblockingapi.com/public/v1/templates/<handle>/<slug>` for the output shape when three or fewer match | none |
+| `get_build_guide` | nothing: the guides ship in the package (`guides/`) | none |
 
-Those are the only two. Templates are not endpoints of their own: there is no
-`/api/google-search` or `/api/<template>`, only `/unblock` with `template` set.
+Templates are not endpoints of their own: there is no `/api/google-search` or
+`/api/<template>`, only `/unblock` with `template` set.
 
 ### Removed tools
 

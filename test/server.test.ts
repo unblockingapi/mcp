@@ -20,10 +20,11 @@ test("plain host and path prefix", () => {
   assert.ok(!templateMatchesUrl(google, "not a url"));
 });
 
-test("a root path covers the whole site, subdomains included", () => {
+test("a root path covers the whole site; hosts are exact unless the pattern says *.", () => {
+  // Same as Rails' Templates::Matcher: only "www." is ignored.
   const t = entry("hemnet.se", "/");
   assert.ok(templateMatchesUrl(t, "https://www.hemnet.se/bostader?x=1"));
-  assert.ok(templateMatchesUrl(t, "https://m.hemnet.se/"));
+  assert.ok(!templateMatchesUrl(t, "https://m.hemnet.se/"));
   assert.ok(!templateMatchesUrl(t, "https://nothemnet.se/"));
 });
 
@@ -64,7 +65,7 @@ test("host wildcards", () => {
   assert.ok(!templateMatchesUrl(anySub, "https://example.org/"));
 });
 
-test("registers exactly unblock_fetch and find_templates", async () => {
+test("registers exactly unblock_fetch, find_templates and get_build_guide", async () => {
   const server = createServer(new UnblockingApiClient({ apiKey: "" }));
   const client = new Client({ name: "test", version: "0" });
   const [a, b] = InMemoryTransport.createLinkedPair();
@@ -72,16 +73,26 @@ test("registers exactly unblock_fetch and find_templates", async () => {
 
   assert.equal(client.getServerVersion()?.version, VERSION);
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map((t) => t.name).sort(), ["find_templates", "unblock_fetch"]);
+  assert.deepEqual(tools.map((t) => t.name).sort(), ["find_templates", "get_build_guide", "unblock_fetch"]);
 
   const fetchTool = tools.find((t) => t.name === "unblock_fetch")!;
   assert.deepEqual(fetchTool.inputSchema.required, ["url"]);
   for (const p of ["url", "render", "location", "wait_for", "settle_ms", "wait_rules", "detect_ms",
-    "wait_state", "scroll_steps", "wait_min_ms", "max_age", "template", "max_chars"]) {
+    "wait_state", "scroll_steps", "wait_min_ms", "max_age", "template", "format", "select", "fresh", "max_chars"]) {
     assert.ok(p in (fetchTool.inputSchema.properties ?? {}), `unblock_fetch.${p}`);
   }
   const find = tools.find((t) => t.name === "find_templates")!;
   assert.deepEqual(Object.keys(find.inputSchema.properties ?? {}).sort(), ["category", "limit", "search", "url"]);
+
+  const guide = tools.find((t) => t.name === "get_build_guide")!;
+  assert.deepEqual(guide.inputSchema.required, ["topic"]);
+
+  // The guides are read from guides/ next to the code: every topic must exist.
+  const { GUIDE_TOPICS } = await import("../src/guides.js");
+  for (const { topic } of GUIDE_TOPICS) {
+    const res = await client.callTool({ name: "get_build_guide", arguments: { topic } });
+    assert.ok(!res.isError, `guide ${topic}`);
+  }
 
   await client.close();
 });

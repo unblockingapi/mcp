@@ -18,6 +18,7 @@
     "start": "node dist/index.js",
     "start:http": "node dist/http.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts",
     "prepublishOnly": "npm run build",
     "smoke": "node scripts/smoke.mjs",
     "smoke:http": "node scripts/smoke-http.mjs"
