@@ -1,0 +1,23 @@
+# Local (stdio) MCP server, for container-based catalogs such as the Docker MCP
+# Catalog: `docker run -i --rm -e UNBLOCKINGAPI_KEY=… <image>`. The hosted
+# server at mcp.unblockingapi.com is the other Dockerfile.
+#
+# tools/list answers without a key (the server starts with a warning and only
+# tool calls need one), so a catalog can list the tools at build time.
+FROM node:22-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build && npm prune --omit=dev
+
+FROM node:22-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=build /app/package.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY guides ./guides
+USER node
+ENTRYPOINT ["node", "dist/index.js"]

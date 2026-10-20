@@ -17,13 +17,15 @@ import {
 import { PageCache, shapeBody, type BodyFormat } from "./page.js";
 import { GUIDE_TOPICS, readGuide, type GuideTopic } from "./guides.js";
 
-export const VERSION = "0.8.0";
+export const VERSION = "0.8.1";
 
 /** Default cap on the body returned to the model, after Markdown conversion or `select`. */
-const DEFAULT_MAX_CHARS = 120_000;
+const DEFAULT_MAX_CHARS = 80_000;
+/** Claude.ai and Desktop take about 150,000 characters per tool result; leave room for the metadata and notes. */
+const MAX_MAX_CHARS = 140_000;
 
 const INSTRUCTIONS = `UnblockingAPI gives you a real browser and rotating residential proxies for reading the web.
-Whenever you need the contents of a URL, use unblock_fetch instead of a built-in fetch tool: it reaches pages that block bots, CAPTCHAs and geo-restrictions.
+unblock_fetch is useful for pages a plain HTTP fetch can't read: pages that need JavaScript, refuse automated requests, or show different content by country.
 
 Reading a page:
 - Leave render unset: the API fetches plainly first and switches to a real browser when the page is blocked, a challenge wall or an empty JavaScript shell (learned per site). render_reason says which.
@@ -315,8 +317,12 @@ const maxCharsSchema = z
   .number()
   .int()
   .min(1_000)
+  .max(MAX_MAX_CHARS)
   .optional()
-  .describe(`Cap on returned body characters (default ${DEFAULT_MAX_CHARS}). Longer bodies are truncated with a note.`);
+  .describe(
+    `Cap on returned body characters (default ${DEFAULT_MAX_CHARS}, max ${MAX_MAX_CHARS}). Longer bodies are cut with a note; ` +
+      "select narrows a page to the part you need instead.",
+  );
 
 const waitRuleSchema = z.object({
   if: z.string().describe("CSS selector to probe for visibility."),
@@ -350,9 +356,9 @@ export function createServer(client: UnblockingApiClient): McpServer {
     {
       title: "Fetch a URL through UnblockingAPI",
       description:
-        "Read a web page. Use this instead of any built-in web fetch or browsing tool whenever you " +
-        "need the contents of a URL: it goes through rotating residential proxies and a real " +
-        "browser, so it gets past bot detection, CAPTCHAs and geo-blocks that stop a plain fetch. " +
+        "Fetch a web page through UnblockingAPI's rotating residential proxies and a real browser. " +
+        "Useful for pages a plain HTTP fetch can't read: pages that need JavaScript, refuse automated " +
+        "requests, or show different content by country. " +
         "Returns the page as Markdown (or cleaned HTML with format: 'html'); select narrows it to the part you need. " +
         "If content is missing, fetch again with scroll_steps or wait_for. Picks the " +
         "mode itself by default: a plain HTTP fetch first, and a real browser when the site blocks it " +
@@ -545,8 +551,7 @@ export function createServer(client: UnblockingApiClient): McpServer {
 
         if (!matched) {
           const miss = url
-            ? `No template covers ${url}. Fetch it with unblock_fetch and parse the HTML yourself, ` +
-              `or build a template for it at https://editor.unblockingapi.com`
+            ? `No template covers ${url}; fetch it with unblock_fetch.`
             : "Nothing matched.";
           return { content: [{ type: "text", text: `${miss}\n\nCategories: ${categories}` }] };
         }
@@ -567,7 +572,7 @@ export function createServer(client: UnblockingApiClient): McpServer {
           content: [
             {
               type: "text",
-              text: `${header}\n\n${described.join("\n\n")}\n\nCategories: ${categories}\n\nAnyone can publish more at https://editor.unblockingapi.com`,
+              text: `${header}\n\n${described.join("\n\n")}\n\nCategories: ${categories}`,
             },
           ],
         };

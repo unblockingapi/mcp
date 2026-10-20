@@ -78,12 +78,12 @@ try {
   const anon = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "unblock_fetch", arguments: { url: "https://example.com" } } }),
   });
   const anonBody = await anon.json().catch(() => ({}));
   const wwwAuth = anon.headers.get("www-authenticate") ?? "";
   check(
-    "no credentials → 401 pointing at the resource metadata",
+    "keyless tools/call → 401 pointing at the resource metadata",
     anon.status === 401 && /^Bearer .*resource_metadata="[^"]+\/\.well-known\/oauth-protected-resource"/.test(wwwAuth) && /scope="mcp"/.test(wwwAuth),
     `${anon.status} ${wwwAuth.slice(0, 90)}`,
   );
@@ -98,6 +98,15 @@ try {
   );
   const prmPath = await fetch(`${base}/.well-known/oauth-protected-resource/mcp`);
   check("path-suffixed metadata too", prmPath.status === 200);
+
+  // Discovery needs no account: directories probe initialize + tools/list keyless.
+  {
+    const c = new Client({ name: "smoke-http-anon", version: "0.0.0" });
+    await c.connect(new StreamableHTTPClientTransport(new URL(url)));
+    const { tools } = await c.listTools();
+    check("keyless initialize + tools/list", tools.length === 3, tools.map((t) => t.name).sort().join(","));
+    await c.close();
+  }
 
   const get = await fetch(url, { headers: { Authorization: "Bearer x", Accept: "text/event-stream" } });
   check("GET /mcp → 405 (stateless)", get.status === 405, String(get.status));

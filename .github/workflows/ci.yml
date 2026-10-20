@@ -21,4 +21,8 @@ jobs:
       # catalogue. Live fetches need a key and cost credits, so they stay local.
       - run: npm run smoke
       - run: npm run smoke:http
+      # Installs as users do (npx -y from the packed tarball): catches a
+      # package npx cannot run, as 0.6.0-0.8.0 were (issue #7).
+      - run: sh scripts/smoke-npx.sh
       - run: docker build -t mcp-ci .
+      - run: docker build -f Dockerfile.stdio -t mcp-ci-stdio .

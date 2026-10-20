@@ -128,6 +128,12 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+/** Whether any message in the request (a single one or a batch) calls a tool. */
+export function callsATool(body: unknown): boolean {
+  const messages = Array.isArray(body) ? body : [body];
+  return messages.some((m) => (m as { method?: string })?.method === "tools/call");
+}
+
 /** What the request asked for, for the access log: `tools/call:unblock_fetch`, `initialize`, … */
 function describe(body: unknown): string {
   const messages = Array.isArray(body) ? body : [body];
@@ -147,8 +153,27 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<str
     return "-";
   }
 
+  let body: unknown;
+  try {
+    body = await readJson(req);
+  } catch (err) {
+    if (err instanceof RangeError) rpcError(res, 413, -32600, "Request body too large.");
+    else rpcError(res, 400, -32700, "Parse error: the body must be JSON-RPC.");
+    return "-";
+  }
+
+  // Discovery is open: initialize, ping, notifications and the list methods
+  // answer without credentials, so directories and scanners that probe with a
+  // keyless tools/list can list the server (issue #2). Calling a tool is what
+  // needs an account; without one it gets the 401 whose WWW-Authenticate
+  // starts MCP sign-in, which spec-following clients handle on any request.
+  const needsAccount = callsATool(body);
   const caller = await resolveCaller(req);
-  if (caller.kind === "anonymous") {
+  if (caller.kind === "invalid_token") {
+    rpcError(res, 401, -32001, "The access token is invalid, expired or revoked. Sign in again.", challenge("invalid_token"));
+    return "-";
+  }
+  if (needsAccount && caller.kind === "anonymous") {
     rpcError(
       res,
       401,
@@ -158,25 +183,12 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<str
     );
     return "-";
   }
-  if (caller.kind === "invalid_token") {
-    rpcError(res, 401, -32001, "The access token is invalid, expired or revoked. Sign in again.", challenge("invalid_token"));
-    return "-";
-  }
-  if (caller.kind === "unavailable") {
+  if (needsAccount && caller.kind === "unavailable") {
     process.stderr.write(`[unblockingapi-mcp] token lookup failed: ${caller.detail}\n`);
     rpcError(res, 503, -32000, "Sign-in is temporarily unavailable. Retry in a few seconds, or use an API key header.", { "Retry-After": "5" });
     return "-";
   }
-  const apiKey = caller.apiKey;
-
-  let body: unknown;
-  try {
-    body = await readJson(req);
-  } catch (err) {
-    if (err instanceof RangeError) rpcError(res, 413, -32600, "Request body too large.");
-    else rpcError(res, 400, -32700, "Parse error: the body must be JSON-RPC.");
-    return "-";
-  }
+  const apiKey = caller.kind === "key" ? caller.apiKey : "";
 
   const server = createServer(new UnblockingApiClient({ apiKey, baseUrl, timeoutMs }));
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.1 — 2026-10-20
+
+### Fixed
+
+- `npx -y @unblockingapi/mcp` works again (#7). Since 0.6.0 the package had two bins and neither was named after the package, so npx could not tell which to run and every install guide, the Claude Code plugin and the directory listings failed with "could not determine executable to run". The package now also has a `mcp` bin. CI packs the package and starts it with `npx -y` to keep it that way.
+
+### Changed
+
+- Hosted server: discovery needs no credentials (#2). `initialize`, `ping`, notifications and `tools/list` answer without a key or token, so directories and scanners can list the server; calling a tool still needs an account and gets the 401 whose `WWW-Authenticate` starts MCP sign-in. An invalid token is still refused on any request.
+- Neutral tool wording for connector directories (#8): `unblock_fetch` and the server instructions describe when the tool is useful instead of telling the model to prefer it over other tools, without "gets past bot detection" phrasing; `find_templates` no longer ends results with a link to the editor.
+- `max_chars` defaults to 80,000 and is capped at 140,000, inside Claude's per-result limit (#8). `select` narrows a page instead.
+
+### Added
+
+- `Dockerfile.stdio`: the local (stdio) server as an image, for container catalogs such as the Docker MCP Catalog (#3). Its `tools/list` works without a key.
+
 ## 0.8.0 — 2026-10-20
 
 ### Added
