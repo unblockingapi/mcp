@@ -14,7 +14,7 @@ about:
   icon: https://avatars.githubusercontent.com/u/266298032?s=200&v=4
 source:
   project: https://github.com/unblockingapi/mcp
-  commit: a85df507ddcfe0689487f11df02c15c5b7654dc5
+  commit: a1e06d70a6c8de64cee66d6ac63964ea137ce25b
   dockerfile: Dockerfile.stdio
 config:
   description: Configure your UnblockingAPI key
