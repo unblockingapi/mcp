@@ -10,6 +10,10 @@
 
 - `server.json`: the hosted server's `Authorization` header is optional now.
 
+### Fixed
+
+- `find_templates` matched template URL patterns with its own simplified rules, which understood `**` only at the end of a path: a pattern with `*` in it, such as `idealista.com /*/**` or `eniro.se /*/f%C3%B6retag`, never matched any URL. It now follows the same grammar as the editor and the template library (Rails' `Templates::Matcher`): `*` is one segment, `**` the rest, `*` inside a segment any run of characters, and hosts match exactly unless the pattern says `*.` or `.*`.
+
 ## 0.6.0 — 2026-10-19
 
 ### Added

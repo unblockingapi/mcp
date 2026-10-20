@@ -130,10 +130,16 @@ async function safe(fn: () => Promise<ToolResult>): Promise<ToolResult> {
 }
 
 /**
- * Does this template cover that URL? Templates declare the host and path prefix
- * they were built for, so matching is a host comparison (www- and
- * subdomain-insensitive) plus a path-prefix test. `**` is the catalogue's
- * wildcard suffix and matches any deeper path.
+ * Does this template cover that URL? A port of Rails' Templates::Matcher, the
+ * grammar the editor and the library suggest templates with, so this answers
+ * the same:
+ *   host  labels compared exactly after dropping "www.", with an optional
+ *         leading "*." (the apex and any subdomain) or trailing ".*" (one or
+ *         two TLD labels: .com, .co.uk);
+ *   path  a segment prefix: "*" is exactly one segment, "**" the rest, and a
+ *         "*" inside a segment is any run of characters ("/*.html", "/p/item-*").
+ * The catalogue does not expose a template's required query keys, so those
+ * are not checked here.
  */
 export function templateMatchesUrl(template: TemplateEntry, url: string): boolean {
   let parsed: URL;
@@ -142,13 +148,53 @@ export function templateMatchesUrl(template: TemplateEntry, url: string): boolea
   } catch {
     return false;
   }
-  const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
-  const templateHost = (template.host ?? "").replace(/^www\./i, "").toLowerCase();
-  if (!templateHost) return false;
-  if (host !== templateHost && !host.endsWith(`.${templateHost}`)) return false;
+  const stripWww = (h: string) => h.trim().toLowerCase().replace(/^www\./, "");
+  const patternHost = stripWww(template.host ?? "");
+  if (!patternHost) return false;
+  return hostMatches(patternHost.split("."), stripWww(parsed.hostname).split(".")) && pathMatches(template.path ?? "/", parsed.pathname);
+}
 
-  const path = (template.path ?? "").replace(/\*+$/, "");
-  return !path || path === "/" || parsed.pathname.startsWith(path);
+function hostMatches(pattern: string[], labels: string[]): boolean {
+  if (pattern[0] === "*") {
+    const rest = pattern.slice(1);
+    return labels.length >= rest.length && labels.slice(labels.length - rest.length).join(".") === rest.join(".");
+  }
+  if (pattern[pattern.length - 1] === "*") {
+    const head = pattern.slice(0, -1);
+    const tld = labels.length - head.length;
+    return labels.slice(0, head.length).join(".") === head.join(".") && tld >= 1 && tld <= 2;
+  }
+  return labels.join(".") === pattern.join(".");
+}
+
+function pathMatches(patternPath: string, path: string): boolean {
+  const normalized = patternPath.trim() || "/";
+  const pattern = normalized === "/" ? [] : normalized.replace(/\/+$/, "").replace(/^\//, "").split("/");
+  const segments = path.split("/").filter(Boolean);
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] === "**") return true;
+    const segment = segments[i];
+    if (segment === undefined || !segmentMatches(pattern[i], segment)) return false;
+  }
+  return true;
+}
+
+/** "*" anywhere in a segment pattern is any run of characters; literal pieces must appear in order. */
+function segmentMatches(pattern: string, segment: string): boolean {
+  if (pattern === "*") return true;
+  if (!pattern.includes("*")) return segment === pattern;
+  const parts = pattern.split("*");
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  if (!segment.startsWith(first)) return false;
+  let at = first.length;
+  for (const piece of parts.slice(1, -1)) {
+    if (!piece) continue;
+    const found = segment.indexOf(piece, at);
+    if (found < 0) return false;
+    at = found + piece.length;
+  }
+  return !last || (segment.endsWith(last) && segment.length - last.length >= at);
 }
 
 /**
