@@ -1,5 +1,9 @@
 # @unblockingapi/mcp
 
+[![@unblockingapi/mcp MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/unblockingapi/mcp/badges/card.svg)](https://glama.ai/mcp/servers/unblockingapi/mcp)
+
+[![@unblockingapi/mcp MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/unblockingapi/mcp/badges/score.svg)](https://glama.ai/mcp/servers/unblockingapi/mcp)
+
 Official [Model Context Protocol](https://modelcontextprotocol.io) server and
 Claude Code plugin for [UnblockingAPI](https://unblockingapi.com). Gives AI
 agents (Claude, Cursor, VS Code, Zed, …) a real browser behind rotating
