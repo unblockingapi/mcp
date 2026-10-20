@@ -15,7 +15,7 @@ import {
   type UnblockParams,
 } from "./client.js";
 
-export const VERSION = "0.6.0";
+export const VERSION = "0.7.0";
 
 /** Default cap on the body returned to the model; pages are often 100–500 KB. */
 const DEFAULT_MAX_CHARS = 120_000;
@@ -130,10 +130,15 @@ async function safe(fn: () => Promise<ToolResult>): Promise<ToolResult> {
 }
 
 /**
- * Does this template cover that URL? Templates declare the host and path prefix
- * they were built for, so matching is a host comparison (www- and
- * subdomain-insensitive) plus a path-prefix test. `**` is the catalogue's
- * wildcard suffix and matches any deeper path.
+ * Does this template cover that URL? The same grammar as the API's own
+ * matcher (Templates::Matcher in unblockingapi-core), minus query keys, which
+ * the catalogue does not publish:
+ *   host  "www." ignored on both sides; a subdomain of the host matches;
+ *         a leading "*." means the apex and any subdomain, a trailing ".*"
+ *         one or two TLD labels (google.* → google.com, google.co.uk).
+ *   path  a segment prefix. "*" is exactly one segment, "**" (last) any
+ *         deeper path, and a "*" inside a segment any run of characters in it
+ *         ("/*.html", "/p/item-*"). Compared percent-encoded, as URL gives it.
  */
 export function templateMatchesUrl(template: TemplateEntry, url: string): boolean {
   let parsed: URL;
@@ -142,13 +147,58 @@ export function templateMatchesUrl(template: TemplateEntry, url: string): boolea
   } catch {
     return false;
   }
-  const host = parsed.hostname.replace(/^www\./i, "").toLowerCase();
-  const templateHost = (template.host ?? "").replace(/^www\./i, "").toLowerCase();
-  if (!templateHost) return false;
-  if (host !== templateHost && !host.endsWith(`.${templateHost}`)) return false;
+  return hostMatches(template.host ?? "", parsed.hostname) && pathMatches(template.path ?? "", parsed.pathname);
+}
 
-  const path = (template.path ?? "").replace(/\*+$/, "");
-  return !path || path === "/" || parsed.pathname.startsWith(path);
+function hostMatches(pattern: string, hostname: string): boolean {
+  const pat = pattern.replace(/^www\./i, "").toLowerCase();
+  const host = hostname.replace(/^www\./i, "").toLowerCase();
+  if (!pat) return false;
+
+  const patLabels = pat.split(".");
+  const labels = host.split(".");
+  if (patLabels[0] === "*") {
+    const rest = patLabels.slice(1);
+    return labels.length >= rest.length && labels.slice(-rest.length).join(".") === rest.join(".");
+  }
+  if (patLabels[patLabels.length - 1] === "*") {
+    const head = patLabels.slice(0, -1);
+    const extra = labels.length - head.length;
+    return labels.slice(0, head.length).join(".") === head.join(".") && extra >= 1 && extra <= 2;
+  }
+  return host === pat || host.endsWith(`.${pat}`);
+}
+
+function pathMatches(pattern: string, pathname: string): boolean {
+  const patSegments = pattern.split("/").filter(Boolean);
+  const segments = pathname.split("/").filter(Boolean);
+  for (let i = 0; i < patSegments.length; i++) {
+    const pat = patSegments[i];
+    if (pat === "**") return true;
+    const segment = segments[i];
+    if (segment === undefined || !segmentMatches(pat, segment)) return false;
+  }
+  return true;
+}
+
+/** Literal pieces in order, first anchored to the start and last to the end. No regex. */
+function segmentMatches(pattern: string, segment: string): boolean {
+  if (pattern === "*") return true;
+  if (!pattern.includes("*")) return pattern === segment;
+
+  const parts = pattern.split("*");
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  if (!segment.startsWith(first)) return false;
+
+  let at = first.length;
+  for (const piece of parts.slice(1, -1)) {
+    if (!piece) continue;
+    const found = segment.indexOf(piece, at);
+    if (found === -1) return false;
+    at = found + piece.length;
+  }
+  return !last || (segment.endsWith(last) && segment.length - last.length >= at);
 }
 
 /**
