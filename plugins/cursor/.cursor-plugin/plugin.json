@@ -1,0 +1,15 @@
+{
+  "name": "unblockingapi",
+  "displayName": "UnblockingAPI",
+  "version": "0.8.1",
+  "description": "Fetch public web pages that block simple requests, and get clean Markdown, HTML or template JSON back.",
+  "author": {
+    "name": "UnblockingAPI",
+    "email": "hello@unblockingapi.com"
+  },
+  "homepage": "https://unblockingapi.com/tools/cursor",
+  "repository": "https://github.com/unblockingapi/mcp",
+  "license": "MIT",
+  "keywords": ["mcp", "web-fetch", "markdown", "templates", "structured-data", "scraping"],
+  "logo": "assets/logo.png"
+}
