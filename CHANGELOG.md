@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 — 2026-10-20
 
 ### Added
 
@@ -9,6 +9,8 @@
 ### Changed
 
 - `server.json`: the hosted server's `Authorization` header is optional now.
+- `unblock_fetch`'s description now opens by telling the model to use it instead of any built-in web fetch or browsing tool.
+- Docs lead with the hosted server: the Claude guide adds the Claude.ai / Claude Desktop connector, the Cursor guide a one-click hosted install that signs in with OAuth. `package.json` and the plugin drop the `serp` / `google-search` keywords left from the retired search tools.
 
 ### Fixed
 
