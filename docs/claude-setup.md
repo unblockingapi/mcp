@@ -190,7 +190,8 @@ You don't have to name the tools. Ask naturally:
 - *"Is there a template for this site?"* → `find_templates(url)`
 - *"Pull this listing as structured data"* → `find_templates`, then `unblock_fetch` with `template:`
 
-Each successful fetch costs 1 credit; failures are free. Rendered fetches cost
+Each successful fetch costs 1 credit; failures are free, except a `wait_for`
+selector that never appears within 20 seconds (1 credit). Rendered fetches cost
 the same as plain ones but take longer, which is why Claude tries plain first.
 
 ## Troubleshooting

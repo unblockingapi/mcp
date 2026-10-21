@@ -47,7 +47,7 @@ The response's readiness block and notes say what happened and what to try. Each
 
 Building an app or script that fetches pages with UnblockingAPI (a rank tracker, a listings aggregator, a price monitor, …): call get_build_guide first. It explains the REST API, keeping the key server-side, templates and complete recipes, so the app calls the API directly with plain HTTP.
 
-Every successful fetch costs 1 credit; failures are free. Re-reading the exact same fetch (another select or format) within ${PAGE_CACHE_TTL_MINUTES} minutes is free; pass fresh: true to fetch again. max_age accepts the API's cached copy (up to 300 s) but still costs 1 credit.`;
+Every successful fetch costs 1 credit; failures are free, except a wait_for selector that does not appear within 20 seconds (it fails and costs 1 credit), so take a selector from the page you have seen rather than guessing one. Re-reading the exact same fetch (another select or format) within ${PAGE_CACHE_TTL_MINUTES} minutes is free; pass fresh: true to fetch again. max_age accepts the API's cached copy (up to 300 s) but still costs 1 credit.`;
 
 type ToolResult = { isError?: boolean; content: { type: "text"; text: string }[] };
 
@@ -443,7 +443,7 @@ export function createServer(client: UnblockingApiClient): McpServer {
         "mode itself by default: a plain HTTP fetch first, and a real browser when the site blocks it " +
         "or needs JavaScript. Pass a template reference to get structured JSON instead of HTML — call " +
         "find_templates with the url first to see whether one exists. " +
-        "Costs 1 credit per successful fetch; failures are free.",
+        "Costs 1 credit per successful fetch; failures are free, except a wait_for selector that does not appear within 20 seconds (1 credit).",
       inputSchema: {
         url: z.string().url().describe("The HTTP/HTTPS URL to fetch. Media and binary files are rejected."),
         render: z

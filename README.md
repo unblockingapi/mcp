@@ -17,7 +17,8 @@ sign in, no install. Or run it locally with `npx -y @unblockingapi/mcp`.
 | `find_templates` | Find a template that parses a site into JSON — by the URL you are about to fetch, by keyword, or by category — with its output shape. | free |
 | `get_build_guide` | Guides for building apps on the REST API with plain HTTP: API reference, getting complete pages, templates, and recipes (rank tracker, listings aggregator, price monitor). | free |
 
-Failed requests are free. The server's instructions, tool descriptions and the
+Failed requests are free, except a `wait_for` selector that never appears
+within 20 seconds (1 credit: the page was rendered). The server's instructions, tool descriptions and the
 notes in each response steer the agent: let the API choose plain fetch or
 browser, check for a template before parsing a known site, scroll or wait when
 content is missing, and read the build guide before writing code that calls the API.
