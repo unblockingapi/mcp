@@ -26,7 +26,6 @@ export { VERSION, createServer, looksLikeItNeedsJs, templateMatchesUrl } from ".
 function resolveApiKey(): string {
   for (const candidate of [
     process.env.UNBLOCKINGAPI_KEY,
-    process.env.UNBLOCKINGAPI_KEY_ENV,
     process.env.CLAUDE_PLUGIN_OPTION_API_KEY,
     process.env.CLAUDE_PLUGIN_OPTION_api_key,
   ]) {

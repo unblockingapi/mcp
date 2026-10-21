@@ -12,8 +12,11 @@
 
 - Docs: three tools (`get_build_guide` included), plainer wording for what `unblock_fetch` does, and the Claude Code MCP-only setup leads with the hosted server (#13).
 
+- Claude Code plugin: `.mcp.json` pins `@unblockingapi/mcp@0.8.1` instead of `@latest`, so an install runs the version that was reviewed (a release now bumps it too). The plugin takes the key only from its `api_key` user config: it no longer reads `UNBLOCKINGAPI_KEY` from the user's shell (`UNBLOCKINGAPI_KEY_ENV` is gone), and neither does the WebFetch hook. The hook names the tool by its plugin-scoped name, `mcp__plugin_unblockingapi_unblockingapi__unblock_fetch`, and drops the bot-wall wording.
+
 ### Added
 
+- Claude Code plugin icon: `.claude-plugin/icon.png` (512×512).
 - Cursor plugin for the Cursor Marketplace: `.cursor-plugin/marketplace.json` at the repo root and the plugin in `plugins/cursor/` (manifest, `mcp.json` with the hosted server, an agent-decides rule, logo and README). It sits in its own folder so Cursor does not pick up the Claude Code hook, skill and command at the repo root.
 
 ## 0.8.1 — 2026-10-20

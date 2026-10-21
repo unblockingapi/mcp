@@ -37,12 +37,9 @@ Tell them to run this and paste the key into the **UnblockingAPI key** field:
 /plugin configure unblockingapi@unblockingapi-plugins
 ```
 
-Two things they need to know, because both bite people:
-
-- The key is read when the MCP server starts, so after saving it they must
-  reconnect the server from `/mcp`, or start a new session, before it works.
-- If that screen is unavailable, they can instead export `UNBLOCKINGAPI_KEY` in
-  the shell that launches Claude and restart from there.
+One thing they need to know, because it bites people: the key is read when the
+MCP server starts, so after saving it they must reconnect the server from
+`/mcp`, or start a new session, before it works.
 
 Then run `unblock_fetch` on https://example.com again to confirm, and say plainly
 whether it worked.

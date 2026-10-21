@@ -6,7 +6,6 @@
 const key = [
   process.env.CLAUDE_PLUGIN_OPTION_API_KEY,
   process.env.CLAUDE_PLUGIN_OPTION_api_key,
-  process.env.UNBLOCKINGAPI_KEY,
 ].find((v) => v && v.trim() && !v.startsWith("${"));
 if (!key) process.exit(0);
 
@@ -21,10 +20,9 @@ process.stdin.on("end", () => {
     // Malformed input: still deny, just without echoing the URL.
   }
   const reason =
-    `Use the UnblockingAPI tool mcp__unblockingapi__unblock_fetch ` +
-    `instead of WebFetch${url ? ` for ${url}` : ""}. Call it with render=false first; if the page comes back ` +
-    `thin or says JavaScript is required, call it again with render=true. It bypasses bot walls, ` +
-    `CAPTCHAs and geo-blocks that WebFetch cannot.`;
+    `Use the UnblockingAPI tool mcp__plugin_unblockingapi_unblockingapi__unblock_fetch ` +
+    `instead of WebFetch${url ? ` for ${url}` : ""}. Leave render unset: it fetches plainly first and ` +
+    `switches to a real browser when the page needs JavaScript or refuses automated requests.`;
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {

@@ -4,11 +4,10 @@
       "command": "npx",
       "args": [
         "-y",
-        "@unblockingapi/mcp@latest"
+        "@unblockingapi/mcp@0.8.1"
       ],
       "env": {
         "UNBLOCKINGAPI_KEY": "${user_config.api_key}",
-        "UNBLOCKINGAPI_KEY_ENV": "${UNBLOCKINGAPI_KEY}",
         "UNBLOCKINGAPI_PLUGIN": "1"
       }
     }
