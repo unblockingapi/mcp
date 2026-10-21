@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- The server reports the display title `UnblockingAPI` in `serverInfo.title`, so clients that show it no longer list the connector as lowercase `unblockingapi`. The `name` stays `unblockingapi`.
 - `find_templates` searches the whole catalogue (#11). It passes `url`, `search` (as `q`) and `category` to `GET /templates.json`, which matches every published template before cutting a page, so a less-used template for a URL is no longer lost past the 200 most-used. Results report how many match and take a new `page` argument when more match than fit. Against an API without server-side search (no `total` in its answer) it filters the most-used 200 itself, as before, and says when that list may be incomplete.
 - Server instructions and `fresh` state the free re-read window as 10 minutes, taken from the page cache's TTL, and say that `max_age` still costs a credit and misses that free reuse (#12).
 - `get_build_guide` rank-tracker recipe: a result counts as ours only on the exact host or a real subdomain, not on look-alikes such as `notexample.com` (#10).

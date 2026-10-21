@@ -427,7 +427,7 @@ function formatTemplate(t: TemplateEntry): string {
 const DEFAULT_TEMPLATE_LIMIT = 25;
 
 export function createServer(client: UnblockingApiClient): McpServer {
-  const server = new McpServer({ name: "unblockingapi", version: VERSION }, { instructions: INSTRUCTIONS });
+  const server = new McpServer({ name: "unblockingapi", title: "UnblockingAPI", version: VERSION }, { instructions: INSTRUCTIONS });
 
   // --- Tool: unblock_fetch -----------------------------------------------------
   server.registerTool(
