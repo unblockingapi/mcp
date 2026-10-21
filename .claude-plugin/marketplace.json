@@ -8,8 +8,8 @@
   "plugins": [
     {
       "name": "unblockingapi",
-      "source": "./",
-      "description": "Give Claude a real browser: fetch bot-protected and JavaScript-heavy pages through UnblockingAPI, with structured JSON for any site a published template covers. Replaces the built-in web fetch.",
+      "source": "./plugins/claude",
+      "description": "Read web pages that need JavaScript or refuse simple requests, and get clean Markdown, HTML or template JSON back. Uses the hosted UnblockingAPI server; sign in with your account, no key to copy.",
       "version": "0.8.1",
       "category": "web",
       "homepage": "https://unblockingapi.com/tools/claude"

@@ -12,11 +12,11 @@
 
 - Docs: three tools (`get_build_guide` included), plainer wording for what `unblock_fetch` does, and the Claude Code MCP-only setup leads with the hosted server (#13).
 
-- Claude Code plugin: `.mcp.json` pins `@unblockingapi/mcp@0.8.1` instead of `@latest`, so an install runs the version that was reviewed (a release now bumps it too). The plugin takes the key only from its `api_key` user config: it no longer reads `UNBLOCKINGAPI_KEY` from the user's shell (`UNBLOCKINGAPI_KEY_ENV` is gone), and neither does the WebFetch hook. The hook names the tool by its plugin-scoped name, `mcp__plugin_unblockingapi_unblockingapi__unblock_fetch`, and drops the bot-wall wording.
+- Claude Code plugin moves to `plugins/claude/` and uses the hosted server (`https://mcp.unblockingapi.com/mcp`) instead of `npx`: users sign in with their account from `/mcp` (OAuth), there is no `api_key` setting, and it works wherever Claude runs remote servers, not only where Node.js does. `.claude-plugin/marketplace.json` stays at the repo root and points at the new folder, so `unblockingapi@unblockingapi-plugins` installs as before. With the plugin out of the package root, the plugin directory validator no longer scans the npm package's source, `package.json` and lockfile as plugin code. The WebFetch hook is removed (it only acted on a configured key, and the plugin no longer has one), the skill no longer says WebFetch is denied, and `/unblockingapi:setup` walks through signing in.
 
 ### Added
 
-- Claude Code plugin icon: `.claude-plugin/icon.png` (512×512).
+- Claude Code plugin icon: `plugins/claude/.claude-plugin/icon.png` (512×512).
 - Cursor plugin for the Cursor Marketplace: `.cursor-plugin/marketplace.json` at the repo root and the plugin in `plugins/cursor/` (manifest, `mcp.json` with the hosted server, an agent-decides rule, logo and README). It sits in its own folder so Cursor does not pick up the Claude Code hook, skill and command at the repo root.
 
 ## 0.8.1 — 2026-10-20

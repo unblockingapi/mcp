@@ -74,8 +74,8 @@ free credits, no card). Then pick one:
 
 1. **[Hosted server](#hosted-server)** — paste one URL into your app and sign in.
    Nothing to install, no key to copy. Recommended for most apps.
-2. **[Claude Code plugin](#claude-code-plugin)** — the hosted tools plus a hook
-   that makes `unblock_fetch` Claude Code's web fetch.
+2. **[Claude Code plugin](#claude-code-plugin)** — the hosted server plus a skill
+   and a setup command, signed in with your account.
 3. **[Run it locally](#run-it-locally)** — the same server over stdio with `npx`,
    for those who prefer to run it themselves.
 
@@ -131,19 +131,17 @@ with `"type": "http"`.) Agent frameworks: see
 
 ### Claude Code plugin
 
-The plugin bundles the MCP server, stores your key, and makes Claude use
-`unblock_fetch` instead of its built-in web fetch. In Claude Code:
+The plugin connects Claude Code to the hosted server, signed in with your
+account, and adds a skill for the fetch and template workflow. In Claude Code:
 
 ```
 /plugin marketplace add unblockingapi/mcp
 /plugin install unblockingapi@unblockingapi-plugins
-/plugin configure unblockingapi@unblockingapi-plugins
 ```
 
-**The third line matters.** Installing does not prompt for your key and succeeds
-without one, so skipping it leaves every fetch failing. New to this? Run
-`/unblockingapi:setup` instead and Claude walks you through it, then checks that
-it works. Full walkthrough: [docs/claude-setup.md](docs/claude-setup.md).
+Then run `/mcp`, pick **unblockingapi** and choose **Authenticate** to sign in.
+New to this? Run `/unblockingapi:setup` and Claude walks you through it, then
+checks that it works. Full walkthrough: [docs/claude-setup.md](docs/claude-setup.md).
 
 ### Run it locally
 
@@ -181,7 +179,7 @@ stdio via `npx -y @unblockingapi/mcp` and needs the env var `UNBLOCKINGAPI_KEY`.
 
 | Var | Required | Default | Purpose |
 | --- | --- | --- | --- |
-| `UNBLOCKINGAPI_KEY` | yes | — | Your API key. (The Claude Code plugin supplies it from its config prompt.) |
+| `UNBLOCKINGAPI_KEY` | yes | — | Your API key. |
 | `UNBLOCKINGAPI_BASE_URL` | no | `https://api.unblockingapi.com` | Override the API base URL. |
 | `UNBLOCKINGAPI_TIMEOUT_MS` | no | `180000` | Per-request timeout. A plain fetch that falls back to a browser can take ~170 s. |
 
@@ -240,8 +238,9 @@ npm run start:http # the hosted server on :8080 (PORT)
 Repository layout: `src/` (`server.ts` tools, `index.ts` stdio entry,
 `http.ts` hosted entry, `client.ts` API client), `Dockerfile` (the hosted
 image, deployed to mcp.unblockingapi.com by `.github/workflows/deploy.yml`), `.claude-plugin/` (Claude Code
-plugin + marketplace manifests), `hooks/`, `skills/` and `commands/` (plugin
-behaviour), `docs/` (setup guides).
+marketplace manifest), `plugins/claude/` (the Claude Code plugin: hosted server,
+skill, setup command), `.cursor-plugin/` and `plugins/cursor/` (the Cursor
+plugin), `docs/` (setup guides).
 
 ## License
 

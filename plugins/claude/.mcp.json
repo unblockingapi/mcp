@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "unblockingapi": {
+      "type": "http",
+      "url": "https://mcp.unblockingapi.com/mcp"
+    }
+  }
+}

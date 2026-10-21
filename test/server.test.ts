@@ -101,7 +101,7 @@ test("server metadata stays in sync", async () => {
   const { readFile } = await import("node:fs/promises");
   const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   const serverJson = JSON.parse(await readFile(new URL("../server.json", import.meta.url), "utf8"));
-  const plugin = JSON.parse(await readFile(new URL("../.claude-plugin/plugin.json", import.meta.url), "utf8"));
+  const plugin = JSON.parse(await readFile(new URL("../plugins/claude/.claude-plugin/plugin.json", import.meta.url), "utf8"));
   const market = JSON.parse(await readFile(new URL("../.claude-plugin/marketplace.json", import.meta.url), "utf8"));
 
   assert.equal(pkg.version, VERSION);

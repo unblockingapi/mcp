@@ -1,14 +1,13 @@
 ---
 name: unblock
-description: Use whenever you need to read a web page, URL, article, documentation page, search result, product page or any live website content. Fetches through UnblockingAPI (unblock_fetch, find_templates) instead of the built-in WebFetch, letting the API pick a plain fetch or a real browser per site, and returning structured JSON when a template covers the site.
+description: Use whenever you need to read a web page, URL, article, documentation page, search result, product page or any live website content. Fetches through UnblockingAPI (unblock_fetch, find_templates), letting the API pick a plain fetch or a real browser per site, and returning structured JSON when a template covers the site.
 ---
 
 # Reading the web with UnblockingAPI
 
-You have the UnblockingAPI MCP server. **Always use it instead of the built-in
-`WebFetch` tool** — it goes out through residential proxies and a real browser,
-so it can read public pages that refuse simple requests or depend on location.
-`WebFetch` is denied by a plugin hook anyway.
+You have the UnblockingAPI MCP server. Use it to read web pages: it goes out
+through residential proxies and a real browser when needed, so it can read
+public pages that need JavaScript, refuse simple requests or depend on location.
 
 ## Workflow
 

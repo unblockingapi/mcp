@@ -51,10 +51,10 @@ members then click *Connect*.
 
 ## Claude Code: plugin
 
-The plugin is the full package: the MCP server, your key stored securely, a
-skill that teaches Claude the fetch-then-render workflow, and a hook that
-redirects Claude's built-in `WebFetch` to `unblock_fetch`. From then on, every
-page Claude reads goes through UnblockingAPI.
+The plugin is the full package: the hosted MCP server, signed in with your
+UnblockingAPI account (no key to copy), a skill that teaches Claude the
+fetch-then-render workflow and templates, and a `/unblockingapi:setup` command
+that checks everything works.
 
 ### Install it from the Claude Code UI
 
@@ -72,76 +72,43 @@ Typing the install directly does the same thing:
 /plugin install unblockingapi@unblockingapi-plugins
 ```
 
-**3. Add your key — or just run the guided setup.** If you would rather be walked
-through it, type `/unblockingapi:setup` and Claude will work out what is missing,
-tell you exactly what to do, and confirm when it works.
+**3. Sign in.** Run `/mcp`, pick **unblockingapi** and choose **Authenticate**.
+A browser opens on app.unblockingapi.com: sign in (or sign up — 500 free
+credits, no card) and approve. Or type `/unblockingapi:setup` and Claude walks
+you through it and confirms when it works.
 
-Otherwise: Claude Code asks for a plugin's settings when the plugin is
-*enabled*, so you may see an *UnblockingAPI key* prompt right after installing —
-fill it in and you are done. If you don't see one, or you dismissed it, the
-install still succeeded with no key and only printed a one-line warning. Set it
-explicitly with:
-
-```
-/plugin configure unblockingapi@unblockingapi-plugins
-```
-
-and paste your key into *UnblockingAPI key*. It is stored securely, never in a
-file in your repo.
-
-**4. Check it landed.** Run `/mcp` — `unblockingapi` should show as connected
-with three tools: `unblock_fetch`, `find_templates` and `get_build_guide`. Then try:
+**4. Check it landed.** `/mcp` should show `unblockingapi` as connected with
+three tools: `unblock_fetch`, `find_templates` and `get_build_guide`. Then try:
 
 > Use unblockingapi to get the Google results for "wikipedia" as structured data.
 
 Claude should call `find_templates`, find the Google search template, and come
-back with parsed results rather than HTML. If instead you get "No
-UnblockingAPI key is configured", step 3 did not take — run it again.
+back with parsed results rather than HTML.
 
 ### Install it from the terminal
-
-Same thing in one shot, with the key inline:
 
 ```bash
 claude plugin marketplace add unblockingapi/mcp
 ```
 
 ```bash
-claude plugin install unblockingapi@unblockingapi-plugins --config api_key=your_api_key_here
+claude plugin install unblockingapi@unblockingapi-plugins
 ```
 
-`--config` only applies on a **fresh** install. If the plugin is already
-installed, the command reports "already installed" and silently leaves the key
-unset — use `/plugin configure` instead, or uninstall first:
-
-```bash
-claude plugin uninstall unblockingapi@unblockingapi-plugins
-```
+Then sign in from `/mcp` in a session, as in step 3.
 
 **Updating:** third-party marketplaces do not auto-update, so pull new plugin
 versions yourself with `claude plugin marketplace update unblockingapi-plugins`,
-or turn on auto-update under `/plugin` → *Marketplaces*. The MCP server itself is
-fetched with `npx …@latest`, so new tools arrive without reinstalling.
+or turn on auto-update under `/plugin` → *Marketplaces*. The server is hosted,
+so new tools arrive without reinstalling.
 
 **Removing:** `claude plugin uninstall unblockingapi@unblockingapi-plugins`.
-
-### What the plugin changes
-
-- Claude prefers `unblock_fetch` for any URL and leaves the mode to the API: a
-  plain fetch first, and a real browser when the site blocks it or serves an
-  empty JavaScript shell (learned per site).
-- The built-in `WebFetch` tool is denied with a message pointing at
-  `unblock_fetch`. If you ever remove your key, the hook stands down and
-  `WebFetch` works again, so a broken setup never leaves Claude blind.
-- Nothing else changes: no permissions are pre-approved, no other tools are touched.
-
----
 
 ## Claude Code: MCP server only
 
 If you'd rather not install a plugin, register the server directly. You get the
-same three tools: `unblock_fetch`, `find_templates` and `get_build_guide`; Claude will usually pick `unblock_fetch` on its own
-because the server describes it well, but `WebFetch` stays available.
+same three tools: `unblock_fetch`, `find_templates` and `get_build_guide`, without
+the plugin's skill and setup command.
 
 **Hosted (recommended)** — nothing to install, and you sign in instead of
 pasting a key:
@@ -228,12 +195,11 @@ the same as plain ones but take longer, which is why Claude tries plain first.
 | Symptom | Fix |
 | --- | --- |
 | The connector's sign-in page says the connection can't continue | Remove the connector and add it again; Claude registers itself afresh. |
-| "No UnblockingAPI key is configured" | The plugin was installed without a key. Run `/plugin configure unblockingapi@unblockingapi-plugins`. Manual installs: check the `env` block / `-e` flag. |
-| `/plugin configure` says the plugin is unknown | The marketplace name is part of the id — use the full `unblockingapi@unblockingapi-plugins`. |
-| `--config` had no effect | It only applies on a fresh install. Uninstall first, or use `/plugin configure`. |
+| The plugin's tools are missing or say sign-in is required | Run `/mcp`, pick **unblockingapi** and choose **Authenticate**. |
+| "No UnblockingAPI key is configured" | A local (`npx`) install without a key: check the `env` block / `-e` flag. |
 | "Invalid or missing API key (HTTP 401)" | The key is wrong or was revoked. Copy it again from the dashboard. |
 | "Out of credits (HTTP 402)" | Top up at <https://unblockingapi.com/billing>. |
 | "Too many requests in flight (HTTP 429)" | You hit your plan's concurrency cap. Claude will retry once another request finishes. |
 | Tools don't appear in Claude Desktop | The config file is not valid JSON, or the app was not restarted. |
-| Not sure what is wrong | Run `/unblockingapi:setup` — it diagnoses the key, the connection and your credits, and tells you the one thing to fix. |
+| Not sure what is wrong | Run `/unblockingapi:setup` — it diagnoses sign-in, the connection and your credits, and tells you the one thing to fix. |
 | A rendered fetch times out | Lower `settle_ms`, or wait on a specific selector with `wait_for`. A render's hard ceiling is 140 s (about 170 s when a blocked plain fetch falls back to one). |
