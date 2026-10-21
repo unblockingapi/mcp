@@ -8,7 +8,10 @@
     "url": "https://unblockingapi.com"
   },
   "homepage": "https://unblockingapi.com/tools/claude",
+  "documentationUrl": "https://github.com/unblockingapi/mcp/blob/main/docs/claude-setup.md",
+  "supportUrl": "https://unblockingapi.com/contact",
   "privacyPolicyUrl": "https://unblockingapi.com/privacy",
+  "termsOfServiceUrl": "https://unblockingapi.com/terms",
   "repository": "https://github.com/unblockingapi/mcp",
   "license": "MIT",
   "keywords": [
