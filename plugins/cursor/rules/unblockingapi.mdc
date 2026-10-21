@@ -1,0 +1,16 @@
+---
+description: Read web pages through the UnblockingAPI MCP server when a plain fetch fails or structured data is needed
+alwaysApply: false
+---
+
+When you need the contents of a URL and the built-in web tool gets an error,
+an empty page or a challenge page, use the `unblock_fetch` tool from the
+`unblockingapi` MCP server. Leave `render` unset: the API fetches plainly first
+and uses a real browser only when the page needs one.
+
+Before parsing a well-known site by hand, call `find_templates` with the URL.
+If a template covers it, pass its reference as `unblock_fetch`'s `template`
+argument to get structured JSON instead of a page to parse. `find_templates`
+is free; each successful `unblock_fetch` costs 1 credit and failures are free.
+
+Before writing code that calls UnblockingAPI, call `get_build_guide`.

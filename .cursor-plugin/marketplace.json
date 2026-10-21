@@ -1,0 +1,18 @@
+{
+  "name": "unblockingapi",
+  "owner": {
+    "name": "UnblockingAPI",
+    "email": "hello@unblockingapi.com"
+  },
+  "metadata": {
+    "description": "Official Cursor plugin from UnblockingAPI.",
+    "version": "0.8.1"
+  },
+  "plugins": [
+    {
+      "name": "unblockingapi",
+      "source": "./plugins/cursor",
+      "description": "Fetch public web pages that block simple requests, and get clean Markdown, HTML or template JSON back."
+    }
+  ]
+}

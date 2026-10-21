@@ -12,6 +12,10 @@
 
 - Docs: three tools (`get_build_guide` included), plainer wording for what `unblock_fetch` does, and the Claude Code MCP-only setup leads with the hosted server (#13).
 
+### Added
+
+- Cursor plugin for the Cursor Marketplace: `.cursor-plugin/marketplace.json` at the repo root and the plugin in `plugins/cursor/` (manifest, `mcp.json` with the hosted server, an agent-decides rule, logo and README). It sits in its own folder so Cursor does not pick up the Claude Code hook, skill and command at the repo root.
+
 ## 0.8.1 — 2026-10-20
 
 ### Fixed
