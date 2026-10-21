@@ -51,7 +51,7 @@ publish one.
    template for the site at https://editor.unblockingapi.com so the next fetch
    is structured.
 
-`find_templates` also takes `search` (keyword) and `category`, and is free —
+`find_templates` also takes `search` (free text) and `category`, and is free —
 it charges no credit, so checking costs you nothing but a moment.
 
 If a template's parser fails because the site changed, you get the raw HTML back
@@ -74,7 +74,7 @@ in that case.
 Writing code that calls UnblockingAPI (a rank tracker, an aggregator, a
 monitor, any script or backend) is a different job from reading pages here: use
 the `build-app` skill, with `templates` and `app-recipes` as needed. Apps call
-the REST API directly with plain HTTP and keep the key server-side.
+the REST API directly with plain HTTP from server code.
 
 ## Reading the result
 
