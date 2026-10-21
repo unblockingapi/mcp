@@ -63,7 +63,7 @@ if you already have one.
 ```
 
 Cursor picks the file up immediately. Under *Settings → MCP* the server should
-show a green dot and two tools: `unblock_fetch` and `find_templates`.
+show a green dot and three tools: `unblock_fetch`, `find_templates` and `get_build_guide`.
 
 ### Option D — ask the agent
 

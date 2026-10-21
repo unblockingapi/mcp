@@ -13,7 +13,7 @@ sign in, no install. Or run it locally with `npx -y @unblockingapi/mcp`.
 
 | Tool | What it does | Cost |
 | --- | --- | --- |
-| `unblock_fetch` | Fetch any URL, bypassing anti-bot walls, CAPTCHAs and geo-blocks. Picks plain HTTP or a real browser per site by itself. Returns Markdown (or HTML), optionally narrowed with a CSS `select`; pass `template` to get structured JSON instead. | 1 credit per success; re-reading the same fetch is free |
+| `unblock_fetch` | Fetch public web pages that block simple requests, and get clean Markdown or HTML back. Picks plain HTTP or a real browser per site by itself; pass `template` to get structured JSON instead. Optionally narrowed with a CSS `select`. | 1 credit per success; re-reading the same fetch is free |
 | `find_templates` | Find a template that parses a site into JSON — by the URL you are about to fetch, by keyword, or by category — with its output shape. | free |
 | `get_build_guide` | Guides for building apps on the REST API with plain HTTP: API reference, getting complete pages, templates, and recipes (rank tracker, listings aggregator, price monitor). | free |
 
@@ -35,9 +35,11 @@ find_templates(url: "https://www.google.com/search?q=…")   → kjellberg/googl
 unblock_fetch(url: "…", template: "kjellberg/google-search") → { query, results, related_searches }
 ```
 
-`find_templates` matches the URL against each template's host and path the
-same way the template library does (`*` is one path segment, `**` any deeper
-path, hosts exact unless the pattern says `*.` or `.*`).
+`find_templates` asks the API, which matches the URL against every published
+template's host, path and required query parameters the same way the template
+library does (`*` is one path segment, `**` any deeper path, hosts exact unless
+the pattern says `*.` or `.*`), so a match is found however large the
+catalogue grows. More results than fit come back with a `page` to ask for next.
 
 If a parser fails because the site changed, you get raw HTML back with
 `parse_error: true` rather than an error.
@@ -47,7 +49,7 @@ If a parser fails because the site changed, you get raw HTML back with
 | Tool | Calls | Key |
 | --- | --- | --- |
 | `unblock_fetch` | `POST https://api.unblockingapi.com/unblock` (JSON body; `template` selects a template) | `X-Api-Key` |
-| `find_templates` | `GET https://api.unblockingapi.com/templates.json` (the public catalogue, cached for 5 minutes), plus `GET https://app.unblockingapi.com/public/v1/templates/<handle>/<slug>` for the output shape when three or fewer match | none |
+| `find_templates` | `GET https://api.unblockingapi.com/templates.json?url=…&q=…&category=…&limit=…&page=…` (the public catalogue, searched server-side; answers cached for 5 minutes), plus `GET https://app.unblockingapi.com/public/v1/templates/<handle>/<slug>` for the output shape when three or fewer match | none |
 | `get_build_guide` | nothing: the guides ship in the package (`guides/`) | none |
 
 Templates are not endpoints of their own: there is no `/api/google-search` or

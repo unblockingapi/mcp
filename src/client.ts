@@ -149,7 +149,31 @@ export interface TemplateCategory {
 export interface TemplateCatalogue {
   categories: TemplateCategory[];
   templates: TemplateEntry[];
+  /**
+   * How many templates match the query across all pages. Only a server that
+   * filters (url / q / page) sends it; an older one ignores those parameters
+   * and returns the most-used templates unfiltered, without these fields.
+   */
+  total?: number;
+  page?: number;
+  limit?: number;
 }
+
+/** GET /templates.json filters; all optional. */
+export interface TemplateQuery {
+  /** The templates built for this page (matched server-side). */
+  url?: string;
+  /** Text search over name, description, slug, host and handle. */
+  q?: string;
+  category?: string;
+  /** Page size, 1–200 (the server's maximum). */
+  limit?: number;
+  /** 1-based page number. */
+  page?: number;
+}
+
+/** The server's largest page (Api::TemplatesFeedController::MAX_LIMIT). */
+export const TEMPLATES_MAX_LIMIT = 200;
 
 export class UnblockingApiClient {
   /** Also the page cache's partition: callers never share cached pages. */
@@ -235,9 +259,13 @@ export class UnblockingApiClient {
     return json as ApiResult;
   }
 
-  /** GET /templates.json — public, no key required. */
-  async templates(): Promise<TemplateCatalogue> {
-    const res = await this.fetchWithTimeout(`${this.baseUrl}/templates.json?limit=200`, {
+  /** GET /templates.json — public, no key required. Without a query: the most-used page of 200. */
+  async templates(query: TemplateQuery = {}): Promise<TemplateCatalogue> {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries({ limit: TEMPLATES_MAX_LIMIT, ...query })) {
+      if (value !== undefined && value !== "") search.set(key, String(value));
+    }
+    const res = await this.fetchWithTimeout(`${this.baseUrl}/templates.json?${search}`, {
       method: "GET",
       headers: { Accept: "application/json", "User-Agent": "unblockingapi-mcp" },
     });

@@ -6,9 +6,9 @@ description: Use whenever you need to read a web page, URL, article, documentati
 # Reading the web with UnblockingAPI
 
 You have the UnblockingAPI MCP server. **Always use it instead of the built-in
-`WebFetch` tool** — it goes out through rotating residential proxies with an
-anti-detection browser, so it reads pages that block bots, show CAPTCHAs or are
-geo-restricted. `WebFetch` is denied by a plugin hook anyway.
+`WebFetch` tool** — it goes out through residential proxies and a real browser,
+so it can read public pages that refuse simple requests or depend on location.
+`WebFetch` is denied by a plugin hook anyway.
 
 ## Workflow
 
@@ -31,8 +31,10 @@ geo-restricted. `WebFetch` is denied by a plugin hook anyway.
    checkbox wants a human click, and waiting longer will not help.
 4. **Geo-restricted or localised pages:** pass `location` as a 2-letter country
    code (`us`, `gb`, `de`, `se`, …).
-5. **Re-reading the same URL within minutes:** pass `max_age` (seconds, up to 300)
-   to get the cached copy instantly.
+5. **Re-reading a page:** the exact same fetch (another `select` or `format`)
+   within 10 minutes is reused for free; pass `fresh: true` to fetch again.
+   `max_age` (seconds, up to 300) accepts the API's cached copy instantly but
+   still costs 1 credit, and changes the fetch, so it misses that free reuse.
 
 ## Structured JSON instead of HTML
 

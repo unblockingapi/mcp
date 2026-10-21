@@ -63,18 +63,21 @@ export function shapeBody(html: string, format: BodyFormat, select?: string): { 
 }
 
 /**
- * The last pages fetched, kept for a few minutes so refining one (another
+ * The last pages fetched, kept for PAGE_CACHE_TTL_MS so refining one (another
  * `select`, the other `format`) reuses it instead of spending a credit.
  * Keyed by the caller's key and the fetch parameters, so callers never see
  * each other's pages and a different fetch (another wait, more scrolling)
  * always goes to the API. Bounded by total size; oldest out first.
  */
+/** How long a fetched page is kept for free re-reading. */
+export const PAGE_CACHE_TTL_MS = 10 * 60_000;
+
 export class PageCache {
   private entries = new Map<string, { at: number; result: ApiResult; size: number }>();
   private bytes = 0;
 
   constructor(
-    private readonly ttlMs = 10 * 60_000,
+    private readonly ttlMs = PAGE_CACHE_TTL_MS,
     private readonly maxBytes = 64 * 1024 * 1024,
   ) {}
 

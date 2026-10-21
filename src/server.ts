@@ -10,11 +10,13 @@ import {
   UnblockingApiClient,
   UnblockingApiError,
   type ApiResult,
+  TEMPLATES_MAX_LIMIT,
   type TemplateCatalogue,
   type TemplateEntry,
+  type TemplateQuery,
   type UnblockParams,
 } from "./client.js";
-import { PageCache, shapeBody, type BodyFormat } from "./page.js";
+import { PAGE_CACHE_TTL_MS, PageCache, shapeBody, type BodyFormat } from "./page.js";
 import { GUIDE_TOPICS, readGuide, type GuideTopic } from "./guides.js";
 
 export const VERSION = "0.8.1";
@@ -23,6 +25,9 @@ export const VERSION = "0.8.1";
 const DEFAULT_MAX_CHARS = 80_000;
 /** Claude.ai and Desktop take about 150,000 characters per tool result; leave room for the metadata and notes. */
 const MAX_MAX_CHARS = 140_000;
+
+/** How long a fetched page is reused for free, in the words the model reads. */
+const PAGE_CACHE_TTL_MINUTES = Math.round(PAGE_CACHE_TTL_MS / 60_000);
 
 const INSTRUCTIONS = `UnblockingAPI gives you a real browser and rotating residential proxies for reading the web.
 unblock_fetch is useful for pages a plain HTTP fetch can't read: pages that need JavaScript, refuse automated requests, or show different content by country.
@@ -42,7 +47,7 @@ The response's readiness block and notes say what happened and what to try. Each
 
 Building an app or script that fetches pages with UnblockingAPI (a rank tracker, a listings aggregator, a price monitor, …): call get_build_guide first. It explains the REST API, keeping the key server-side, templates and complete recipes, so the app calls the API directly with plain HTTP.
 
-Every successful fetch costs 1 credit; failures are free. Pass max_age (seconds) when re-reading the same URL within a few minutes.`;
+Every successful fetch costs 1 credit; failures are free. Re-reading the exact same fetch (another select or format) within ${PAGE_CACHE_TTL_MINUTES} minutes is free; pass fresh: true to fetch again. max_age accepts the API's cached copy (up to 300 s) but still costs 1 credit.`;
 
 type ToolResult = { isError?: boolean; content: { type: "text"; text: string }[] };
 
@@ -100,7 +105,9 @@ function toToolResult(result: ApiResult, opts: RenderOptions = {}): ToolResult {
 
   const notes: string[] = [];
   if (opts.reusedAgeMs !== undefined) {
-    notes.push("Re-read from the copy of this exact fetch made moments ago: no new request and no credit spent. Pass fresh: true to fetch again.");
+    notes.push(
+      `Re-read from the copy of this exact fetch made ${Math.round(opts.reusedAgeMs / 1000)}s ago: no new request and no credit spent. Pass fresh: true to fetch again.`,
+    );
   }
   const verification = result.readiness?.verification;
   if (verification?.status === "interactive") {
@@ -261,7 +268,18 @@ function segmentMatches(pattern: string, segment: string): boolean {
  * repeated discovery calls off the wire without going stale in a session.
  */
 const CATALOGUE_TTL_MS = 5 * 60 * 1000;
+const QUERY_CACHE_MAX = 100;
 let catalogueCache: { at: number; catalogue: TemplateCatalogue } | null = null;
+const queryCache = new Map<string, { at: number; catalogue: TemplateCatalogue }>();
+/** Until when the API is known to be one that ignores url / q / page (no `total` in its answer). */
+let legacyFeedUntil = 0;
+
+/** Forget every cached catalogue answer (tests). */
+export function resetTemplateCaches(): void {
+  catalogueCache = null;
+  queryCache.clear();
+  legacyFeedUntil = 0;
+}
 
 async function currentCatalogue(client: UnblockingApiClient): Promise<TemplateCatalogue> {
   if (catalogueCache && Date.now() - catalogueCache.at < CATALOGUE_TTL_MS) {
@@ -270,6 +288,67 @@ async function currentCatalogue(client: UnblockingApiClient): Promise<TemplateCa
   const catalogue = await client.templates();
   catalogueCache = { at: Date.now(), catalogue };
   return catalogue;
+}
+
+async function queriedCatalogue(client: UnblockingApiClient, query: TemplateQuery): Promise<TemplateCatalogue> {
+  const key = JSON.stringify(query);
+  const hit = queryCache.get(key);
+  if (hit && Date.now() - hit.at < CATALOGUE_TTL_MS) return hit.catalogue;
+  const catalogue = await client.templates(query);
+  queryCache.delete(key);
+  queryCache.set(key, { at: Date.now(), catalogue });
+  for (const [oldest] of queryCache) {
+    if (queryCache.size <= QUERY_CACHE_MAX) break;
+    queryCache.delete(oldest);
+  }
+  return catalogue;
+}
+
+export interface TemplateSearch {
+  /** Every template matching the filters, across all pages. */
+  matched: number;
+  /** The requested page of them. */
+  templates: TemplateEntry[];
+  categories: TemplateCatalogue["categories"];
+  /** Only a slice of the catalogue could be searched (an API without server-side search, at its 200 cap). */
+  partialCatalogue?: number;
+}
+
+/**
+ * Ask the API to match url / search / category over the whole catalogue and
+ * return one page. An API that predates server-side search answers without
+ * `total`; then filter its most-used 200 here, as before, and say so when
+ * that list was cut at the cap.
+ */
+export async function searchTemplates(
+  client: UnblockingApiClient,
+  opts: { url?: string; search?: string; category?: string; limit: number; page: number },
+): Promise<TemplateSearch> {
+  const { url, search, category, limit, page } = opts;
+  if (Date.now() >= legacyFeedUntil) {
+    const answer = await queriedCatalogue(client, { url, q: search, category, limit, page });
+    if (typeof answer.total === "number") {
+      return { matched: answer.total, templates: answer.templates, categories: answer.categories };
+    }
+    legacyFeedUntil = Date.now() + CATALOGUE_TTL_MS;
+  }
+
+  const catalogue = await currentCatalogue(client);
+  let templates = catalogue.templates;
+  if (url) templates = templates.filter((t) => templateMatchesUrl(t, url));
+  if (category) templates = templates.filter((t) => t.category === category);
+  if (search) {
+    const needle = search.toLowerCase();
+    templates = templates.filter((t) =>
+      [t.name, t.reference, t.host, t.description].some((s) => s?.toLowerCase().includes(needle)),
+    );
+  }
+  return {
+    matched: templates.length,
+    templates: templates.slice((page - 1) * limit, page * limit),
+    categories: catalogue.categories,
+    ...(catalogue.templates.length >= TEMPLATES_MAX_LIMIT ? { partialCatalogue: catalogue.templates.length } : {}),
+  };
 }
 
 const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
@@ -471,7 +550,9 @@ export function createServer(client: UnblockingApiClient): McpServer {
         fresh: z
           .boolean()
           .optional()
-          .describe("Fetch again even if this exact fetch was made in the last few minutes (by default that copy is reused for free)."),
+          .describe(
+            `Fetch again even if this exact fetch was made in the last ${PAGE_CACHE_TTL_MINUTES} minutes (by default that copy is reused for free).`,
+          ),
         max_chars: maxCharsSchema,
       },
       annotations: readOnly,
@@ -524,36 +605,44 @@ export function createServer(client: UnblockingApiClient): McpServer {
           .max(100)
           .optional()
           .describe(`Maximum templates to return (default ${DEFAULT_TEMPLATE_LIMIT}).`),
+        page: z
+          .number()
+          .int()
+          .min(1)
+          .optional()
+          .describe("Which page of `limit` results to return, from 1, when more templates match than fit."),
       },
       annotations: { ...readOnly, openWorldHint: false },
     },
-    async ({ url, search, category, limit }) =>
+    async ({ url, search, category, limit, page }) =>
       safe(async () => {
-        const catalogue = await currentCatalogue(client);
-        const total = catalogue.templates.length;
-        let templates = catalogue.templates;
-
-        if (url) templates = templates.filter((t) => templateMatchesUrl(t, url));
-        if (category) templates = templates.filter((t) => t.category === category);
-        if (search) {
-          const needle = search.toLowerCase();
-          templates = templates.filter((t) =>
-            [t.name, t.reference, t.host, t.description].some((s) => s?.toLowerCase().includes(needle)),
-          );
-        }
-
-        const matched = templates.length;
-        const shown = templates.slice(0, limit ?? DEFAULT_TEMPLATE_LIMIT);
-        const categories = catalogue.categories
+        const perPage = limit ?? DEFAULT_TEMPLATE_LIMIT;
+        const pageNo = page ?? 1;
+        const { matched, templates: shown, categories: categoryRows, partialCatalogue } = await searchTemplates(client, {
+          url,
+          search,
+          category,
+          limit: perPage,
+          page: pageNo,
+        });
+        const categories = categoryRows
           .filter((c) => c.templates_count > 0)
           .map((c) => `${c.slug} (${c.templates_count})`)
           .join(", ");
+        const partialNote = partialCatalogue
+          ? `\n\nNote: only the ${partialCatalogue} most-used templates could be searched; the catalogue may hold more, so a less-used match can be missing.`
+          : "";
 
         if (!matched) {
           const miss = url
             ? `No template covers ${url}; fetch it with unblock_fetch.`
             : "Nothing matched.";
-          return { content: [{ type: "text", text: `${miss}\n\nCategories: ${categories}` }] };
+          return { content: [{ type: "text", text: `${miss}\n\nCategories: ${categories}${partialNote}` }] };
+        }
+        if (!shown.length) {
+          return {
+            content: [{ type: "text", text: `${matched} template(s) match, but page ${pageNo} is past the last one.${partialNote}` }],
+          };
         }
 
         // A short list is a decision about to be made: include what each
@@ -563,16 +652,19 @@ export function createServer(client: UnblockingApiClient): McpServer {
           shapes[i] ? `${formatTemplate(t)}\n    returns: ${shapes[i]!.replace(/\s+/g, " ")}` : formatTemplate(t),
         );
 
+        const first = (pageNo - 1) * perPage + 1;
+        const last = first + shown.length - 1;
+        const more = last < matched ? `, raise limit or pass page: ${pageNo + 1}` : "";
         const header =
           matched === shown.length
-            ? `${matched} of ${total} template(s):`
-            : `${matched} of ${total} template(s), showing ${shown.length} — narrow with search/category or raise limit:`;
+            ? `${matched} template(s) match:`
+            : `${matched} template(s) match, showing ${first}–${last} — narrow with search/category${more}:`;
 
         return {
           content: [
             {
               type: "text",
-              text: `${header}\n\n${described.join("\n\n")}\n\nCategories: ${categories}`,
+              text: `${header}\n\n${described.join("\n\n")}\n\nCategories: ${categories}${partialNote}`,
             },
           ],
         };
