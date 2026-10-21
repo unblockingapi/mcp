@@ -16,6 +16,7 @@
 
 ### Added
 
+- Claude Code plugin skills for building on UnblockingAPI: `build-app` (the REST API from app code: key server-side, 180 s timeouts in background jobs, worker pool and retries, credits), `templates` (find a template for a URL, its output shape, pinned versions, `parse_error`, building one in the editor) and `app-recipes` (rank tracker, price monitor, listings aggregator). Each bundles the matching `guides/` files as references, and a test fails when a copy drifts from `guides/`.
 - Claude Code plugin icon: `plugins/claude/.claude-plugin/icon.png` (512×512).
 - Cursor plugin for the Cursor Marketplace: `.cursor-plugin/marketplace.json` at the repo root and the plugin in `plugins/cursor/` (manifest, `mcp.json` with the hosted server, an agent-decides rule, logo and README). It sits in its own folder so Cursor does not pick up the Claude Code hook, skill and command at the repo root.
 

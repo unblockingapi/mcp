@@ -71,10 +71,10 @@ in that case.
 
 ## Building an app on UnblockingAPI
 
-Before writing code that calls UnblockingAPI (a rank tracker, an aggregator, a
-monitor, any script or backend), call `get_build_guide` with topic `api`, then
-the recipe that fits. Apps call the REST API directly with plain HTTP and keep
-the key server-side.
+Writing code that calls UnblockingAPI (a rank tracker, an aggregator, a
+monitor, any script or backend) is a different job from reading pages here: use
+the `build-app` skill, with `templates` and `app-recipes` as needed. Apps call
+the REST API directly with plain HTTP and keep the key server-side.
 
 ## Reading the result
 

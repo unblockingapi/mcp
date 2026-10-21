@@ -4,6 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer, resetTemplateCaches, templateMatchesUrl, VERSION } from "../src/server.js";
 import { UnblockingApiClient, type TemplateEntry } from "../src/client.js";
+import { GUIDE_TOPICS } from "../src/guides.js";
 
 function entry(host: string, path: string): TemplateEntry {
   return { host, path } as TemplateEntry;
@@ -230,4 +231,22 @@ test("the free re-read window is stated from the page cache's TTL, and max_age i
   const fresh = tools.find((t) => t.name === "unblock_fetch")!.inputSchema.properties!.fresh as { description: string };
   assert.ok(fresh.description.includes(`last ${minutes}`), fresh.description);
   await client.close();
+});
+
+test("plugin skills bundle the current build guides", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const bundled: Record<string, string[]> = {
+    "build-app": ["api", "fetch-tuning"],
+    templates: ["templates"],
+    "app-recipes": ["rank-tracker", "price-monitor", "listings-aggregator"],
+  };
+  const covered = Object.values(bundled).flat().sort();
+  assert.deepEqual(covered, GUIDE_TOPICS.map((g) => g.topic).sort(), "every guide belongs to one skill");
+  for (const [skill, topics] of Object.entries(bundled)) {
+    for (const topic of topics) {
+      const guide = await readFile(new URL(`../guides/${topic}.md`, import.meta.url), "utf8");
+      const copy = await readFile(new URL(`../plugins/claude/skills/${skill}/references/${topic}.md`, import.meta.url), "utf8");
+      assert.equal(copy, guide, `plugins/claude/skills/${skill}/references/${topic}.md is stale: copy guides/${topic}.md over it`);
+    }
+  }
 });

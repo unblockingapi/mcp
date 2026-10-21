@@ -52,9 +52,12 @@ members then click *Connect*.
 ## Claude Code: plugin
 
 The plugin is the full package: the hosted MCP server, signed in with your
-UnblockingAPI account (no key to copy), a skill that teaches Claude the
-fetch-then-render workflow and templates, and a `/unblockingapi:setup` command
-that checks everything works.
+UnblockingAPI account (no key to copy), skills, and a `/unblockingapi:setup`
+command that checks everything works. The skills teach Claude to read pages
+with the fetch-then-render workflow and templates (`unblock`), and to write
+code on the REST API: `build-app` (keys, timeouts, background jobs, retries),
+`templates` (JSON from a site in your app) and `app-recipes` (rank tracker,
+price monitor, listings aggregator).
 
 ### Install it from the Claude Code UI
 
