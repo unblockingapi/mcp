@@ -1,6 +1,6 @@
 {
   "name": "@unblockingapi/mcp",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "mcpName": "io.github.unblockingapi/mcp",
   "description": "Official MCP server for UnblockingAPI \u2014 read any web page (bot-protected, JavaScript-heavy, geo-blocked) and parse it to JSON with templates",
   "type": "module",

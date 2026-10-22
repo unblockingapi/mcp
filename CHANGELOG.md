@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.8.2 — 2026-10-22
 
 ### Fixed
 
+- `unblock_fetch` names the verification that needs a human (#15). The note said "Cloudflare Turnstile checkbox" for every interactive verification; it now names the vendor browserpool reports (Turnstile, Cloudflare's browser check, reCAPTCHA, hCaptcha, DataDome, PerimeterX or Google's bot check), and `readiness.verification.vendor` is typed with all seven.
+- The `wait_timed_out` note says a `wait_for` selector is waited for at most 20 seconds, and to check the selector against the page with `format: "html"` before retrying.
 - The server reports the display title `UnblockingAPI` in `serverInfo.title`, so clients that show it no longer list the connector as lowercase `unblockingapi`. The `name` stays `unblockingapi`.
 - `find_templates` searches the whole catalogue (#11). It passes `url`, `search` (as `q`) and `category` to `GET /templates.json`, which matches every published template before cutting a page, so a less-used template for a URL is no longer lost past the 200 most-used. Results report how many match and take a new `page` argument when more match than fit. Against an API without server-side search (no `total` in its answer) it filters the most-used 200 itself, as before, and says when that list may be incomplete.
 - Server instructions and `fresh` state the free re-read window as 10 minutes, taken from the page cache's TTL, and say that `max_age` still costs a credit and misses that free reuse (#12).
@@ -12,7 +14,6 @@
 ### Changed
 
 - Docs: three tools (`get_build_guide` included), plainer wording for what `unblock_fetch` does, and the Claude Code MCP-only setup leads with the hosted server (#13).
-
 - Claude Code plugin moves to `plugins/claude/` and uses the hosted server (`https://mcp.unblockingapi.com/mcp`) instead of `npx`: users sign in with their account from `/mcp` (OAuth), there is no `api_key` setting, and it works wherever Claude runs remote servers, not only where Node.js does. `.claude-plugin/marketplace.json` stays at the repo root and points at the new folder, so `unblockingapi@unblockingapi-plugins` installs as before. With the plugin out of the package root, the plugin directory validator no longer scans the npm package's source, `package.json` and lockfile as plugin code. The WebFetch hook is removed (it only acted on a configured key, and the plugin no longer has one), the skill no longer says WebFetch is denied, and `/unblockingapi:setup` walks through signing in.
 
 ### Added

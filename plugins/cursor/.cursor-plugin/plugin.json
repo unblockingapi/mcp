@@ -1,7 +1,7 @@
 {
   "name": "unblockingapi",
   "displayName": "UnblockingAPI",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Fetch public web pages that block simple requests, and get clean Markdown, HTML or template JSON back.",
   "author": {
     "name": "UnblockingAPI",
