@@ -20,8 +20,10 @@ Read the response before retrying:
   `unavailable`; `readiness.reason` and `waited_ms` say more;
   `readiness.scroll_steps` how many scrolls ran.
 - `wait_timed_out: true`: the wait hit its limit and the page was captured as is.
-- `readiness.verification.status: "interactive"`: a Turnstile checkbox wants a
-  human click; waiting will not help.
+- `readiness.verification.status: "interactive"`: a verification wants a human
+  (`readiness.verification.vendor` says which: `turnstile`, `cloudflare`,
+  `recaptcha`, `hcaptcha`, `datadome`, `perimeterx` or `google`); waiting will
+  not help.
 
 Each fetch with new options is a new request (1 credit if it succeeds). In an
 app, find the options that work for a site once and store them with the site,

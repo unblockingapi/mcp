@@ -83,9 +83,16 @@ export interface Readiness {
   reason?: string;
   waited_ms?: number;
   scroll_steps?: number;
-  /** A visible Cloudflare Turnstile widget and its outcome. */
-  verification?: { vendor: "turnstile"; status: "solved" | "interactive" | "pending"; waited_ms?: number } | null;
+  /** A visible verification on the page and its outcome (see VerificationVendor). */
+  verification?: { vendor: VerificationVendor; status: "solved" | "interactive" | "pending"; waited_ms?: number } | null;
 }
+
+/**
+ * What browserpool reports in readiness.verification.vendor: the widget
+ * vendors, plus `cloudflare` for its interstitial ("Just a moment") and
+ * `google` for its /sorry/ page.
+ */
+export type VerificationVendor = "turnstile" | "cloudflare" | "recaptcha" | "hcaptcha" | "datadome" | "perimeterx" | "google";
 
 /** Body of every /unblock response that carries a result — 200, 404, 500, 503, 504. */
 export interface ApiResult {

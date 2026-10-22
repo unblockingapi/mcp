@@ -250,3 +250,26 @@ test("plugin skills bundle the current build guides", async () => {
     }
   }
 });
+
+test("an interactive verification is named by its vendor", async () => {
+  const notesFor = async (vendor: string) => {
+    const api = new UnblockingApiClient({ apiKey: "k" });
+    api.unblock = async () =>
+      ({
+        job_id: "j", url: "https://example.com/", status: "succeeded", http_response_code: 200, response_time_ms: 1,
+        render: true, location: null, response_format: "html", response: "<p>hi</p>",
+        readiness: { status: "satisfied", verification: { vendor, status: "interactive" } },
+      }) as unknown as Awaited<ReturnType<UnblockingApiClient["unblock"]>>;
+    const server = createServer(api);
+    const client = new Client({ name: "test", version: "0" });
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(a), client.connect(b)]);
+    const res = await client.callTool({ name: "unblock_fetch", arguments: { url: `https://example.com/${vendor}` } });
+    await client.close();
+    return (res.content as { text: string }[]).map((c) => c.text).join("\n");
+  };
+  assert.match(await notesFor("datadome"), /shows a DataDome check that needs a human/);
+  assert.match(await notesFor("google"), /shows Google's bot check that needs a human/);
+  assert.doesNotMatch(await notesFor("recaptcha"), /Turnstile/);
+  assert.match(await notesFor("somethingnew"), /shows a bot check that needs a human/);
+});

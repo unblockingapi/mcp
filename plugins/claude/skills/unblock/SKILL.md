@@ -26,8 +26,9 @@ public pages that need JavaScript, refuse simple requests or depend on location.
    `scroll_steps` triggers lazy sections; `wait_min_ms` adds a minimum delay;
    `settle_ms` caps how long the page may keep changing; `wait_rules` handles
    pages with several layouts (consent gate, interstitial). Any of these implies a
-   browser. `readiness.verification.status: "interactive"` means a Turnstile
-   checkbox wants a human click, and waiting longer will not help.
+   browser. `readiness.verification.status: "interactive"` means a verification
+   (Turnstile, reCAPTCHA, DataDome, …; `vendor` says which) wants a human, and
+   waiting longer will not help.
 4. **Geo-restricted or localised pages:** pass `location` as a 2-letter country
    code (`us`, `gb`, `de`, `se`, …).
 5. **Re-reading a page:** the exact same fetch (another `select` or `format`)

@@ -15,11 +15,12 @@ import {
   type TemplateEntry,
   type TemplateQuery,
   type UnblockParams,
+  type VerificationVendor,
 } from "./client.js";
 import { PAGE_CACHE_TTL_MS, PageCache, shapeBody, type BodyFormat } from "./page.js";
 import { GUIDE_TOPICS, readGuide, type GuideTopic } from "./guides.js";
 
-export const VERSION = "0.8.1";
+export const VERSION = "0.8.2";
 
 /** Default cap on the body returned to the model, after Markdown conversion or `select`. */
 const DEFAULT_MAX_CHARS = 80_000;
@@ -62,6 +63,22 @@ interface RenderOptions {
 }
 
 /** Render an ApiResult into MCP tool output, marking failures with isError. */
+/** What a person calls each verification vendor (browserpool's progress.VENDOR_NAMES), as "a/an …" or "…'s …". */
+const VERIFICATION_NAMES: Record<VerificationVendor, string> = {
+  turnstile: "a Cloudflare Turnstile check",
+  cloudflare: "Cloudflare's browser check",
+  recaptcha: "a reCAPTCHA check",
+  hcaptcha: "an hCaptcha check",
+  datadome: "a DataDome check",
+  perimeterx: "a PerimeterX check",
+  google: "Google's bot check",
+};
+
+/** Unknown vendors (a newer browserpool) still get a sentence. */
+function verificationName(vendor: string): string {
+  return VERIFICATION_NAMES[vendor as VerificationVendor] ?? "a bot check";
+}
+
 function toToolResult(result: ApiResult, opts: RenderOptions = {}): ToolResult {
   const failed = result.status === "failed";
   const maxChars = opts.maxChars ?? DEFAULT_MAX_CHARS;
@@ -111,7 +128,7 @@ function toToolResult(result: ApiResult, opts: RenderOptions = {}): ToolResult {
   }
   const verification = result.readiness?.verification;
   if (verification?.status === "interactive") {
-    notes.push("The page shows a Cloudflare Turnstile checkbox that needs a human click; waiting longer will not help.");
+    notes.push(`The page shows ${verificationName(verification.vendor)} that needs a human; waiting longer will not help.`);
   }
   if (result.wait_timed_out) {
     notes.push(
