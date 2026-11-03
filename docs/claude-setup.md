@@ -202,7 +202,7 @@ the same as plain ones but take longer, which is why Claude tries plain first.
 | "No UnblockingAPI key is configured" | A local (`npx`) install without a key: check the `env` block / `-e` flag. |
 | "Invalid or missing API key (HTTP 401)" | The key is wrong or was revoked. Copy it again from the dashboard. |
 | "Out of credits (HTTP 402)" | Top up at <https://unblockingapi.com/billing>. |
-| "Too many requests in flight (HTTP 429)" | You hit your plan's concurrency cap. Claude will retry once another request finishes. |
+| "Too many requests in flight (HTTP 429)" | You hit your account's concurrency cap (25 in flight). Claude will retry once another request finishes. |
 | Tools don't appear in Claude Desktop | The config file is not valid JSON, or the app was not restarted. |
 | Not sure what is wrong | Run `/unblockingapi:setup` — it diagnoses sign-in, the connection and your credits, and tells you the one thing to fix. |
 | A rendered fetch times out | Lower `settle_ms`, or wait on a specific selector with `wait_for`. A render's hard ceiling is 140 s (about 170 s when a blocked plain fetch falls back to one). |

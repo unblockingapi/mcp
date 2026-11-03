@@ -85,7 +85,7 @@ def unblock(url, **options):
 | 401 | Missing or wrong key. | Check the secret. |
 | 402 | Out of credits. | Top up at unblockingapi.com/billing; stop the job. |
 | 422 | Invalid parameters (`error` says which). | Fix the request. |
-| 429 | Too many requests in flight for this key (plan concurrency). | Limit parallelism; retry after one finishes. |
+| 429 | Too many requests in flight for this key (25 per account). | Limit parallelism; retry after one finishes. |
 | 500 | The target blocked or failed (`http_response_code` has its status). | Retry later, maybe with `location`. Free. |
 | 503 | Temporarily no capacity. | Retry after a few seconds. |
 | 504 | Timed out. | Retry; lower waits. |
@@ -99,9 +99,8 @@ Failures cost nothing; every success costs 1 credit (cache hits too).
   HTTP timeout to 180 s, and don't call the API inside a request handler that a
   platform kills after 10-30 s: run it in a background job, queue or cron, and
   store the results.
-- Concurrency is per plan (Pay as you Go 5, Scout 10, Builder 25, Growth 50
-  requests in flight). Process lists with a small worker pool (3-5) and retry
-  429 and 503 with backoff.
+- Every account can have 25 requests in flight (more on request). Process
+  lists with a small worker pool (3-5) and retry 429 and 503 with backoff.
 
 ## Keeping the key server-side
 

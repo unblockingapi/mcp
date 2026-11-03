@@ -130,5 +130,5 @@ the same but take longer, which is why the agent tries plain first.
 | "No UnblockingAPI key is configured" | The `env` block is missing or still says `your_api_key_here`. |
 | "Invalid or missing API key (HTTP 401)" | The key is wrong or was revoked. Copy it again from the dashboard. |
 | "Out of credits (HTTP 402)" | Top up at <https://unblockingapi.com/billing>. |
-| "Too many requests in flight (HTTP 429)" | You hit your plan's concurrency cap. Retry once another request finishes. |
+| "Too many requests in flight (HTTP 429)" | You hit your account's concurrency cap (25 in flight). Retry once another request finishes. |
 | The agent still uses its own web tool | Add the rule from step 2, or mention "use unblockingapi" in your prompt. |

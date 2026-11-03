@@ -27,7 +27,7 @@ and Python. Read `references/fetch-tuning.md` when a page comes back incomplete.
    that a platform kills after 10-30 s: fetch in a background job, queue or
    scheduled function, store the result and serve it from the database.
 3. **Small worker pool, honest retries.** Process lists 3-5 at a time. Retry
-   429 (plan concurrency) and 503/504 with backoff. A 500 means the target
+   429 (concurrency limit) and 503/504 with backoff. A 500 means the target
    blocked or failed: it is free, retry later rather than in a tight loop. Stop
    the job on 402 (out of credits) and fix the request on 422.
 4. **Leave `render` unset.** The API fetches plainly first and switches to a
