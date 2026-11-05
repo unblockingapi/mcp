@@ -123,17 +123,14 @@ claude mcp add --transport http unblockingapi https://mcp.unblockingapi.com/mcp
 Then run `/mcp`, pick `unblockingapi` and choose **Authenticate**: an
 UnblockingAPI page opens, sign in and click **Allow**.
 
-**Local, with `npx`** — runs the server on your machine with your API key
-(needs Node.js 18+):
+For Claude Code, prefer the [plugin](#claude-code-plugin) or the hosted
+command above (OAuth, no key in the shell). Key-based stdio (`npx` + an env
+var) is for other MCP clients and is documented in the repository README under
+"Run it locally".
 
-```bash
-claude mcp add unblockingapi \
-  -e UNBLOCKINGAPI_KEY=your_api_key_here \
-  -- npx -y @unblockingapi/mcp
-```
-
-Either way, add `--scope project` to share it with your team via `.mcp.json`,
-or leave it at the default user scope so it follows you into every project.
+Add `--scope project` to share the hosted registration with your team via
+`.mcp.json`, or leave it at the default user scope so it follows you into
+every project.
 
 Verify with `claude mcp list` — `unblockingapi` should read **Connected**.
 
@@ -148,36 +145,11 @@ instead of WebFetch. Leave render unset; the API picks plain fetch or browser it
 
 ## Claude Desktop: local server
 
-The [connector](#claudeai-and-claude-desktop-connector) is simpler. To run the
-server on your own machine instead, Claude Desktop reads MCP servers from a
-config file and needs a restart after you edit it.
-
-**1. Open the config file:**
-
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-(Or *Settings → Developer → Edit Config* inside the app.)
-
-**2. Add the server** — merge into any existing `mcpServers` block:
-
-```json
-{
-  "mcpServers": {
-    "unblockingapi": {
-      "command": "npx",
-      "args": ["-y", "@unblockingapi/mcp"],
-      "env": { "UNBLOCKINGAPI_KEY": "your_api_key_here" }
-    }
-  }
-}
-```
-
-**3. Quit and reopen Claude Desktop.** The tools icon in the chat box should
-list `unblock_fetch`, `find_templates` and `get_build_guide`.
-
-Claude Desktop needs Node.js 18+ on your PATH for `npx`. If the server fails to
-start, install Node from <https://nodejs.org> and restart the app.
+Prefer the [connector](#claudeai-and-claude-desktop-connector) (OAuth, no key to
+paste). A local stdio server is optional and uses the same key-in-MCP-config
+pattern as other non-Claude hosts; copy the block from the repository README
+section "Run it locally", then quit and reopen Claude Desktop. Node.js 18+ must
+be on your PATH for `npx`.
 
 ---
 
@@ -199,7 +171,7 @@ the same as plain ones but take longer, which is why Claude tries plain first.
 | --- | --- |
 | The connector's sign-in page says the connection can't continue | Remove the connector and add it again; Claude registers itself afresh. |
 | The plugin's tools are missing or say sign-in is required | Run `/mcp`, pick **unblockingapi** and choose **Authenticate**. |
-| "No UnblockingAPI key is configured" | A local (`npx`) install without a key: check the `env` block / `-e` flag. |
+| "No UnblockingAPI key is configured" | You are on a local stdio install without a key. For Claude Code use the plugin and Authenticate instead; for other clients set the key in that client's MCP config (see the repository README). |
 | "Invalid or missing API key (HTTP 401)" | The key is wrong or was revoked. Copy it again from the dashboard. |
 | "Out of credits (HTTP 402)" | Top up at <https://unblockingapi.com/billing>. |
 | "Too many requests in flight (HTTP 429)" | You hit your account's concurrency cap (25 in flight). Claude will retry once another request finishes. |

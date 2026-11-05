@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.4 — 2026-11-05
+
+### Fixed
+
+- Claude plugin directory still held 0.8.3 for "Uses a credential from the user's
+  machine". Investigation: `git diff e9c7705 973be89` (last Scan-passed 0.8.1 →
+  first held 0.8.2) added **no** credential/env content — only verification-vendor
+  naming and the version bump — so the hold likely comes from a stricter rescan of
+  material that already existed in passed 0.8.1 (build-app samples) or from
+  Claude-facing docs outside the plugin folder. This release:
+  - Scrubs `UNBLOCKINGAPI_KEY` / env-read samples out of `plugins/claude` and
+    `guides/api.md`; samples take the key as a function argument filled from the
+    host secret store.
+  - Drops legacy `CLAUDE_PLUGIN_OPTION_*` key resolution from `src/index.ts` (the
+    Claude plugin is OAuth-only via hosted MCP; stdio still uses `UNBLOCKINGAPI_KEY`).
+  - Points Claude Code / Claude Desktop setup at hosted OAuth; key-in-env examples
+    stay in the README for non-Claude MCP clients only.
+  - Fallback: 0.8.1 at `e9c7705` still shows Scan passed and can be published from
+    the directory Versions tab if a new commit stays held.
+
+
 ## 0.8.3 — 2026-11-05
 
 ### Fixed

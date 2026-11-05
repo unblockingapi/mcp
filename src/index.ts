@@ -19,19 +19,14 @@ import { VERSION, createServer } from "./server.js";
 export { VERSION, createServer, looksLikeItNeedsJs, templateMatchesUrl } from "./server.js";
 
 /**
- * The key comes from UNBLOCKINGAPI_KEY, or — inside the Claude Code plugin —
- * from the plugin's user config. A value that still looks like an unexpanded
- * `${…}` placeholder (config the host could not resolve) counts as unset.
+ * Stdio clients (npx, Cursor, Docker, …) pass the key as UNBLOCKINGAPI_KEY.
+ * The Claude Code directory plugin does not use this entrypoint: it connects
+ * to the hosted server over OAuth via plugins/claude/.mcp.json.
+ * A value that still looks like an unexpanded `${…}` placeholder counts as unset.
  */
 function resolveApiKey(): string {
-  for (const candidate of [
-    process.env.UNBLOCKINGAPI_KEY,
-    process.env.CLAUDE_PLUGIN_OPTION_API_KEY,
-    process.env.CLAUDE_PLUGIN_OPTION_api_key,
-  ]) {
-    const value = candidate?.trim() ?? "";
-    if (value && !value.startsWith("${")) return value;
-  }
+  const value = process.env.UNBLOCKINGAPI_KEY?.trim() ?? "";
+  if (value && !value.startsWith("${")) return value;
   return "";
 }
 
