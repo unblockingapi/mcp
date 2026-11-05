@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.3 — 2026-11-05
+
+### Fixed
+
+- Claude Code plugin directory policy hold: the `build-app` skill and the bundled
+  API guide no longer show `process.env.UNBLOCKINGAPI_KEY` / `os.environ[...]`
+  samples that Anthropic's directory treats as reading a credential from the
+  user's machine. Samples use a `<YOUR_UNBLOCKINGAPI_KEY>` placeholder and tell
+  the user to set the secret on their deployed app / hosting provider. The
+  Claude plugin stays OAuth-only via the hosted MCP server (no `userConfig`, no
+  env fallback). Stdio/npx `@unblockingapi/mcp` and Cursor API-key auth are
+  unchanged. Package and Claude/Cursor plugin versions are 0.8.3.
+
+
 ## 0.8.2 — 2026-10-22
 
 ### Fixed

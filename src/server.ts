@@ -20,7 +20,7 @@ import {
 import { PAGE_CACHE_TTL_MS, PageCache, shapeBody, type BodyFormat } from "./page.js";
 import { GUIDE_TOPICS, readGuide, type GuideTopic } from "./guides.js";
 
-export const VERSION = "0.8.2";
+export const VERSION = "0.8.3";
 
 /** Default cap on the body returned to the model, after Markdown conversion or `select`. */
 const DEFAULT_MAX_CHARS = 80_000;

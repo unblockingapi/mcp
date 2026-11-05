@@ -16,11 +16,13 @@ and Python. Read `references/fetch-tuning.md` when a page comes back incomplete.
 
 ## Rules that decide whether the app works
 
-1. **The key stays on the server.** Read it from an environment variable or the
-   platform's secret store (`UNBLOCKINGAPI_KEY`) and call the API only from
-   server code: a route handler, server action, edge function, worker or cron
-   job. Never put it in browser JavaScript, a mobile bundle or a committed file.
-   If the project is client-only, add a small server function for the call.
+1. **The key stays on the server.** Store it in the hosting provider's secret
+   store (Vercel, Replit, Supabase, GitHub Actions, …) and call the API only
+   from server code: a route handler, server action, edge function, worker or
+   cron job. Use a placeholder such as `<YOUR_UNBLOCKINGAPI_KEY>` in samples and
+   load the real value from that secret store at runtime on the deployed app.
+   Never put it in browser JavaScript, a mobile bundle or a committed file. If
+   the project is client-only, add a small server function for the call.
 2. **Allow 180 seconds.** A plain fetch takes seconds; a rendered one usually
    5-20 s and up to ~170 s when a blocked plain fetch falls back to a browser.
    Set the HTTP client timeout to 180 s, and do not fetch inside a web request
@@ -51,7 +53,7 @@ and Python. Read `references/fetch-tuning.md` when a page comes back incomplete.
 
 ## Before you finish
 
-- The key is read from the environment, and a missing key gives a clear error.
+- The key is loaded from the host's secret store at runtime, and a missing key gives a clear error.
 - The timeout is 180 s and fetching happens outside short web requests.
 - 429/503/504 are retried with backoff, 402 stops the run.
 - Templates are pinned (`handle/name@n`) and `parse_error: true` is handled.

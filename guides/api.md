@@ -27,10 +27,13 @@ same names as query parameters).
 
 ```js
 // Server-side only: the key must never reach a browser.
+// Load `<YOUR_UNBLOCKINGAPI_KEY>` from your hosting provider's secret store at
+// runtime (Vercel / Replit / Supabase / GitHub Actions secrets, …). Do not hard-code it.
 export async function unblock(url, options = {}) {
+  const apiKey = "<YOUR_UNBLOCKINGAPI_KEY>";
   const res = await fetch("https://api.unblockingapi.com/unblock", {
     method: "POST",
-    headers: { "X-Api-Key": process.env.UNBLOCKINGAPI_KEY, "Content-Type": "application/json" },
+    headers: { "X-Api-Key": apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({ url, ...options }),
     signal: AbortSignal.timeout(180_000),
   });
@@ -42,13 +45,16 @@ export async function unblock(url, options = {}) {
 ```
 
 ```python
-import json, os, urllib.request
+import json, urllib.request
 
 def unblock(url, **options):
+    # Load `<YOUR_UNBLOCKINGAPI_KEY>` from your hosting provider's secret store at
+    # runtime. Do not hard-code it.
+    api_key = "<YOUR_UNBLOCKINGAPI_KEY>"
     req = urllib.request.Request(
         "https://api.unblockingapi.com/unblock",
         data=json.dumps({"url": url, **options}).encode(),
-        headers={"X-Api-Key": os.environ["UNBLOCKINGAPI_KEY"], "Content-Type": "application/json"},
+        headers={"X-Api-Key": api_key, "Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=180) as res:   # raises HTTPError on 4xx/5xx; its body is JSON too
         return json.load(res)
@@ -104,13 +110,14 @@ Failures cost nothing; every success costs 1 credit (cache hits too).
 
 ## Keeping the key server-side
 
-The API key is a secret: put it in an environment variable or the platform's
-secret store and call the API only from server code.
+The API key is a secret on the user's deployed app. Store it in the hosting
+provider's secret store and read it only from server code at runtime. Samples
+above use the placeholder `<YOUR_UNBLOCKINGAPI_KEY>` for that value.
 
 - **Lovable**: a Supabase Edge Function, with the key in Supabase secrets.
-- **Replit**: Replit Secrets (`process.env.UNBLOCKINGAPI_KEY`), called from the
-  backend.
-- **Bolt / Next.js / Vercel**: a route handler or server action, key in env vars.
+- **Replit**: Replit Secrets, called from the backend.
+- **Bolt / Next.js / Vercel**: a route handler or server action, key in the
+  platform's deployment secrets.
 - **Cron / workers**: Supabase scheduled functions, Vercel Cron, Replit Scheduled
   Deployments, GitHub Actions, or a plain cron job.
 
