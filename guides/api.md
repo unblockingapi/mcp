@@ -27,10 +27,8 @@ same names as query parameters).
 
 ```js
 // Server-side only: the key must never reach a browser.
-// Load `<YOUR_UNBLOCKINGAPI_KEY>` from your hosting provider's secret store at
-// runtime (Vercel / Replit / Supabase / GitHub Actions secrets, …). Do not hard-code it.
-export async function unblock(url, options = {}) {
-  const apiKey = "<YOUR_UNBLOCKINGAPI_KEY>";
+// Put the account key in your host's secret store and pass it here at runtime.
+export async function unblock(url, options = {}, apiKey) {
   const res = await fetch("https://api.unblockingapi.com/unblock", {
     method: "POST",
     headers: { "X-Api-Key": apiKey, "Content-Type": "application/json" },
@@ -47,10 +45,8 @@ export async function unblock(url, options = {}) {
 ```python
 import json, urllib.request
 
-def unblock(url, **options):
-    # Load `<YOUR_UNBLOCKINGAPI_KEY>` from your hosting provider's secret store at
-    # runtime. Do not hard-code it.
-    api_key = "<YOUR_UNBLOCKINGAPI_KEY>"
+def unblock(url, api_key, **options):
+    # Pass api_key from your host's secret store at runtime. Do not hard-code it.
     req = urllib.request.Request(
         "https://api.unblockingapi.com/unblock",
         data=json.dumps({"url": url, **options}).encode(),
@@ -111,8 +107,10 @@ Failures cost nothing; every success costs 1 credit (cache hits too).
 ## Keeping the key server-side
 
 The API key is a secret on the user's deployed app. Store it in the hosting
-provider's secret store and read it only from server code at runtime. Samples
-above use the placeholder `<YOUR_UNBLOCKINGAPI_KEY>` for that value.
+provider's secret store and pass it into the server function at runtime (the
+`apiKey` / `api_key` argument in the samples above). Do not read it from the
+local shell, and do not put it in client-side JavaScript, a mobile app bundle
+or a public repo.
 
 - **Lovable**: a Supabase Edge Function, with the key in Supabase secrets.
 - **Replit**: Replit Secrets, called from the backend.
@@ -120,9 +118,6 @@ above use the placeholder `<YOUR_UNBLOCKINGAPI_KEY>` for that value.
   platform's deployment secrets.
 - **Cron / workers**: Supabase scheduled functions, Vercel Cron, Replit Scheduled
   Deployments, GitHub Actions, or a plain cron job.
-
-Never put the key in client-side JavaScript, a mobile app bundle or a public
-repo.
 
 ## Templates
 

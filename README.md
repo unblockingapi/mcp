@@ -143,21 +143,20 @@ Then run `/mcp`, pick **unblockingapi** and choose **Authenticate** to sign in.
 New to this? Run `/unblockingapi:setup` and Claude walks you through it, then
 checks that it works. Full walkthrough: [docs/claude-setup.md](docs/claude-setup.md).
 
-### Run it locally
+### Run it locally (non-Claude MCP clients)
 
-The same server over stdio. Needs Node.js 18+ and your key in
-`UNBLOCKINGAPI_KEY`.
+The same server over stdio for Cursor, VS Code, Claude Desktop's local config,
+and other MCP hosts. Needs Node.js 18+ and your key in `UNBLOCKINGAPI_KEY`.
+Claude Code should use the [plugin](#claude-code-plugin) (hosted OAuth) instead
+of this env-var path.
 
 ```bash
-# Claude Code
-claude mcp add unblockingapi -e UNBLOCKINGAPI_KEY=your_api_key_here -- npx -y @unblockingapi/mcp
-
 # VS Code
 code --add-mcp '{"name":"unblockingapi","command":"npx","args":["-y","@unblockingapi/mcp"],"env":{"UNBLOCKINGAPI_KEY":"your_api_key_here"}}'
 ```
 
-Claude Desktop (`claude_desktop_config.json`; restart after editing), Cursor
-(`~/.cursor/mcp.json`) and most other apps take this block:
+Cursor (`~/.cursor/mcp.json`), Claude Desktop (`claude_desktop_config.json`;
+restart after editing) and most other apps take this block:
 
 ```json
 {

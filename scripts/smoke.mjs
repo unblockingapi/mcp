@@ -79,16 +79,9 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
   await c.close();
 }
 
-// --- 1b. No key, running as a plugin: point at /plugin configure -------------
+// --- 1b. Schema / keyless catalogue (same process, still no key) -------------
 {
-  const c = await connect({ UNBLOCKINGAPI_KEY: "", UNBLOCKINGAPI_PLUGIN: "1" });
-  const r = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com" } });
-  check(
-    "no key in plugin → points at /plugin configure",
-    r.isError === true && text(r).includes("/plugin configure unblockingapi@unblockingapi-plugins"),
-    text(r).slice(0, 110),
-  );
-
+  const c = await connect({ UNBLOCKINGAPI_KEY: "" });
   const bad = await c.callTool({ name: "unblock_fetch", arguments: { url: "not a url" } });
   check("invalid url rejected by schema", bad.isError === true, text(bad).slice(0, 80));
 
