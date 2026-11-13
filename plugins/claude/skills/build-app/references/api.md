@@ -104,6 +104,30 @@ Failures cost nothing; every success costs 1 credit (cache hits too).
 - Every account can have 25 requests in flight (more on request). Process
   lists with a small worker pool (3-5) and retry 429 and 503 with backoff.
 
+## Getting a key for an agent (device sign-in)
+
+An agent or script with no key can get one with a single approval from a
+person, the way a TV or a CLI signs in (RFC 8628 in shape). The result is the
+person's API key, used as `X-Api-Key` like any other.
+
+1. `POST https://app.unblockingapi.com/device/code` with JSON
+   `{"client_name": "what the person will see"}`. The answer has `device_code`
+   (keep it secret), `user_code` (like `BCDF-GHJK`), `verification_uri_complete`,
+   `expires_in` (600) and `interval` (5).
+2. Show the person the link and the code. They open it, sign in or create an
+   account (new accounts get 500 free credits once they confirm their email),
+   check the code matches and approve.
+3. Every `interval` seconds, `POST https://app.unblockingapi.com/device/token`
+   with `{"device_code": "..."}`. Until they approve the answer is HTTP 400 with
+   `error`: `authorization_pending` (keep polling), `slow_down` (wait 5 s more),
+   `access_denied` (they declined) or `expired_token` (start again). After the
+   approval it is HTTP 200 with `{"api_key": "..."}`, exactly once.
+
+Store the key like any other secret (see below). The person can replace it at
+any time in Settings, which stops the old one at once. The stdio MCP server
+does all of this for you: its `sign_in` tool, or `npx @unblockingapi/mcp login`
+in a terminal.
+
 ## Keeping the key server-side
 
 The API key is a secret on the user's deployed app. Store it in the hosting

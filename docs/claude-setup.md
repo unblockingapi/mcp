@@ -5,7 +5,7 @@ renders JavaScript when a page needs it, and pulls structured JSON from any site
 a published template covers — all through your own UnblockingAPI key.
 
 **Before you start:** sign up at <https://unblockingapi.com>. New accounts get
-500 free credits, no card required.
+500 free credits once they confirm their email, no card required.
 
 Pick the path for how you use Claude:
 
@@ -77,7 +77,7 @@ Typing the install directly does the same thing:
 
 **3. Sign in.** Run `/mcp`, pick **unblockingapi** and choose **Authenticate**.
 A browser opens on app.unblockingapi.com: sign in (or sign up — 500 free
-credits, no card) and approve. Or type `/unblockingapi:setup` and Claude walks
+credits once you confirm your email, no card) and approve. Or type `/unblockingapi:setup` and Claude walks
 you through it and confirms when it works.
 
 **4. Check it landed.** `/mcp` should show `unblockingapi` as connected with

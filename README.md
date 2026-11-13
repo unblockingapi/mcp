@@ -70,7 +70,7 @@ exist:
 ## Setup
 
 You need an UnblockingAPI account — sign up at <https://unblockingapi.com> (500
-free credits, no card). Then pick one:
+free credits once you confirm your email, no card). Then pick one:
 
 1. **[Hosted server](#hosted-server)** — paste one URL into your app and sign in.
    Nothing to install, no key to copy. Recommended for most apps.
@@ -149,6 +149,12 @@ The same server over stdio for Cursor, VS Code, Claude Desktop's local config,
 and other MCP hosts. Needs Node.js 18+ and your key in `UNBLOCKINGAPI_KEY`.
 Claude Code should use the [plugin](#claude-code-plugin) (hosted OAuth) instead
 of this env-var path.
+
+No key yet? Leave `UNBLOCKINGAPI_KEY` out. The server then offers a `sign_in`
+tool: the agent gives you a link and a code, you sign in or create an account
+and approve, and the key is saved to `~/.config/unblockingapi/credentials` for
+next time (it never passes through the chat). Or run
+`npx @unblockingapi/mcp login` in a terminal first.
 
 ```bash
 # VS Code

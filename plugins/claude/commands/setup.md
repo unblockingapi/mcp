@@ -24,7 +24,8 @@ which signs in with their UnblockingAPI account. There is no key to copy.
 
 Tell them to run `/mcp`, pick **unblockingapi** and choose **Authenticate**. A
 browser opens on app.unblockingapi.com: they sign in (or sign up — new accounts
-get 500 free credits with no card) and approve the connection.
+get 500 free credits, no card, once they confirm their email) and approve the
+connection.
 
 Then run `unblock_fetch` on https://example.com again to confirm, and say plainly
 whether it worked. If sign-in keeps failing, they can clear it from `/mcp` and

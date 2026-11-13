@@ -58,7 +58,7 @@ and Python. Read `references/fetch-tuning.md` when a page comes back incomplete.
 - 429/503/504 are retried with backoff, 402 stops the run.
 - Templates are pinned (`handle/name@n`) and `parse_error: true` is handled.
 - Tell the user where to put the key (their dashboard at unblockingapi.com has
-  it; new accounts get 500 free credits) and what the job will cost per month.
+  it; new accounts get 500 free credits once they confirm their email) and what the job will cost per month.
 
 For a rank tracker, price monitor or listings aggregator, the `app-recipes`
 skill has a complete design.

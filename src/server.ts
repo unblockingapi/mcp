@@ -19,8 +19,9 @@ import {
 } from "./client.js";
 import { PAGE_CACHE_TTL_MS, PageCache, shapeBody, type BodyFormat } from "./page.js";
 import { GUIDE_TOPICS, readGuide, type GuideTopic } from "./guides.js";
+import { appUrl, saveKey, startDeviceGrant, waitForApproval, type DeviceGrant } from "./device.js";
 
-export const VERSION = "0.8.4";
+export const VERSION = "0.9.0";
 
 /** Default cap on the body returned to the model, after Markdown conversion or `select`. */
 const DEFAULT_MAX_CHARS = 80_000;
@@ -446,8 +447,29 @@ function formatTemplate(t: TemplateEntry): string {
 /** Enough to choose from without flooding the context on a large catalogue. */
 const DEFAULT_TEMPLATE_LIMIT = 25;
 
-export function createServer(client: UnblockingApiClient): McpServer {
+export interface SignInOptions {
+  /** How the approval page names this agent (its own claim; shown as such). */
+  clientName?: string;
+  /** app.unblockingapi.com unless overridden (UNBLOCKINGAPI_APP_URL). */
+  appUrl?: string;
+  /** How long one sign_in call waits for the approval before returning. */
+  waitMs?: number;
+  /** Persist the key; returns where it went. Defaults to the config-dir file. */
+  saveKey?: (apiKey: string) => Promise<string>;
+}
+
+export interface ServerOptions {
+  /**
+   * Registers the `sign_in` tool (device-code sign-in). Stdio only: the hosted
+   * server is bound to one caller's key per request and signs in over OAuth.
+   */
+  signIn?: SignInOptions;
+}
+
+export function createServer(client: UnblockingApiClient, options: ServerOptions = {}): McpServer {
   const server = new McpServer({ name: "unblockingapi", title: "UnblockingAPI", version: VERSION }, { instructions: INSTRUCTIONS });
+
+  if (options.signIn) registerSignIn(server, client, options.signIn);
 
   // --- Tool: unblock_fetch -----------------------------------------------------
   server.registerTool(
@@ -712,4 +734,70 @@ export function createServer(client: UnblockingApiClient): McpServer {
   );
 
   return server;
+}
+
+/**
+ * `sign_in`: a stdio server started without a key gets one with one approval
+ * from a person (src/device.ts). The first call starts the sign-in and waits a
+ * little; the model passes the link and code on, and calls again to keep
+ * waiting. The key goes into the client and the config file, never into the
+ * result.
+ */
+function registerSignIn(server: McpServer, client: UnblockingApiClient, opts: SignInOptions): void {
+  const base = opts.appUrl ?? appUrl();
+  const waitMs = opts.waitMs ?? 40_000;
+  const persist = opts.saveKey ?? ((key: string) => saveKey(key));
+  let pending: (DeviceGrant & { expiresAt: number }) | null = null;
+
+  const text = (t: string, isError = false): ToolResult => ({ ...(isError ? { isError: true } : {}), content: [{ type: "text", text: t }] });
+  const ask = (g: DeviceGrant) =>
+    `Ask the person to open ${g.verification_uri_complete} and approve the code ${g.user_code} ` +
+    `(they can sign in or create an account there; new accounts get 500 free credits once they confirm their email). ` +
+    `Then call sign_in again to finish. The code expires in ${Math.max(1, Math.round((pending!.expiresAt - Date.now()) / 60_000))} min.`;
+
+  server.registerTool(
+    "sign_in",
+    {
+      title: "Sign in to UnblockingAPI",
+      description:
+        "Connect this server to an UnblockingAPI account when no API key is configured (fetches fail with " +
+        "'No UnblockingAPI key is configured'). Returns a link and a short code for the person to approve in their " +
+        "browser, where they can also create an account; call it again to finish once they have. No key is shown to you.",
+      inputSchema: {},
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async () =>
+      safe(async () => {
+        if (client.apiKey) return text("Already signed in: fetches use the configured UnblockingAPI key.");
+
+        if (!pending || pending.expiresAt <= Date.now()) {
+          const grant = await startDeviceGrant(opts.clientName ?? "UnblockingAPI MCP server", base);
+          pending = { ...grant, expiresAt: Date.now() + grant.expires_in * 1000 };
+          return text(ask(pending));
+        }
+
+        const result = await waitForApproval(pending, { budgetMs: waitMs, base });
+        switch (result.status) {
+          case "approved": {
+            client.apiKey = result.apiKey;
+            pending = null;
+            let where: string;
+            try {
+              where = `The key is saved in ${await persist(result.apiKey)} for next time.`;
+            } catch (err) {
+              where = `The key could not be saved (${(err as Error).message}); sign in again after a restart.`;
+            }
+            return text(`Signed in. unblock_fetch works now. ${where}`);
+          }
+          case "pending":
+            return text(`Still waiting for the approval. ${ask(pending)}`);
+          case "access_denied":
+            pending = null;
+            return text("The person declined. Nothing was connected; call sign_in to start again if they want to.", true);
+          default:
+            pending = null;
+            return text("The code expired before it was approved. Call sign_in to get a new one.", true);
+        }
+      }),
+  );
 }

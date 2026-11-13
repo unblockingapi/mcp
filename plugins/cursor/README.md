@@ -5,7 +5,7 @@ or template JSON back.
 
 This plugin adds UnblockingAPI's hosted MCP server to Cursor, plus an optional
 rule that tells the agent when to use it. You need an UnblockingAPI account:
-sign up at <https://unblockingapi.com> (500 free credits, no card).
+sign up at <https://unblockingapi.com> (500 free credits once you confirm your email, no card).
 
 ## What you get
 

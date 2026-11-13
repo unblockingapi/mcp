@@ -6,7 +6,7 @@ needs it, and returns structured JSON for any site a published template covers â
 all through your own UnblockingAPI key.
 
 **Before you start:** sign up at <https://unblockingapi.com>. New accounts get
-500 free credits, no card required.
+500 free credits once they confirm their email, no card required.
 
 ---
 

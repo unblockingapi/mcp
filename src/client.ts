@@ -24,7 +24,11 @@ const DEFAULT_TIMEOUT_MS = 180_000;
  * plugins/claude/.mcp.json), so there is no plugin-configure branch here.
  */
 export function missingKeyMessage(_env: NodeJS.ProcessEnv = process.env): string {
-  return "No UnblockingAPI key is configured. Get one at https://unblockingapi.com (500 free credits). Set UNBLOCKINGAPI_KEY in the server's environment.";
+  return (
+    "No UnblockingAPI key is configured. Call the sign_in tool: it gives the person a link and a code, and they " +
+    "sign in or create an account (500 free credits once they confirm their email). Or run " +
+    "`npx @unblockingapi/mcp login` in a terminal, or set UNBLOCKINGAPI_KEY in the server's environment."
+  );
 }
 
 export class UnblockingApiError extends Error {
@@ -173,7 +177,8 @@ export const TEMPLATES_MAX_LIMIT = 200;
 
 export class UnblockingApiClient {
   /** Also the page cache's partition: callers never share cached pages. */
-  readonly apiKey: string;
+  /** Set later by the stdio `sign_in` tool when the server started without a key. */
+  apiKey: string;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
 

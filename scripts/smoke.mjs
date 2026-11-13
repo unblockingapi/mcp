@@ -4,6 +4,9 @@
 // UNBLOCKINGAPI_KEY set it also performs live fetches that cost credits.
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const key = process.env.UNBLOCKINGAPI_KEY ?? "";
 let failures = 0;
@@ -53,13 +56,15 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
 }
 
 // --- 1. No key: server starts, tools listed, fetch fails cleanly -------------
+// An empty config dir, so a key saved by `login` on this machine is not used.
+const noSavedKey = { XDG_CONFIG_HOME: mkdtempSync(join(tmpdir(), "uba-smoke-")) };
 {
-  const c = await connect({ UNBLOCKINGAPI_KEY: "" });
+  const c = await connect({ UNBLOCKINGAPI_KEY: "", ...noSavedKey });
   const instructions = c.getInstructions();
   check("server instructions present", !!instructions && instructions.includes("render_reason") && instructions.includes("find_templates"));
   const { tools } = await c.listTools();
   const names = tools.map((t) => t.name).sort();
-  check("tools", JSON.stringify(names) === JSON.stringify(["find_templates", "get_build_guide", "unblock_fetch"]), names.join(","));
+  check("tools (sign_in offered without a key)", JSON.stringify(names) === JSON.stringify(["find_templates", "get_build_guide", "sign_in", "unblock_fetch"]), names.join(","));
   const fetchTool = tools.find((t) => t.name === "unblock_fetch");
   const props = Object.keys(fetchTool.inputSchema.properties).sort();
   check(
@@ -72,8 +77,8 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
 
   const r = await c.callTool({ name: "unblock_fetch", arguments: { url: "https://example.com" } });
   check(
-    "no key → isError telling you to set UNBLOCKINGAPI_KEY",
-    r.isError === true && text(r).includes("Set UNBLOCKINGAPI_KEY"),
+    "no key → isError pointing at sign_in and UNBLOCKINGAPI_KEY",
+    r.isError === true && text(r).includes("sign_in") && text(r).includes("UNBLOCKINGAPI_KEY"),
     text(r).slice(0, 90),
   );
   await c.close();
@@ -81,7 +86,7 @@ const text = (r) => r.content?.map((c) => c.text ?? "").join("\n") ?? "";
 
 // --- 1b. Schema / keyless catalogue (same process, still no key) -------------
 {
-  const c = await connect({ UNBLOCKINGAPI_KEY: "" });
+  const c = await connect({ UNBLOCKINGAPI_KEY: "", ...noSavedKey });
   const bad = await c.callTool({ name: "unblock_fetch", arguments: { url: "not a url" } });
   check("invalid url rejected by schema", bad.isError === true, text(bad).slice(0, 80));
 

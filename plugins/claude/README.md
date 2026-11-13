@@ -14,7 +14,7 @@ with your UnblockingAPI account, so there is no API key to copy.
 
 Then run `/mcp`, pick **unblockingapi** and choose **Authenticate**. A browser
 opens on app.unblockingapi.com: sign in (new accounts get 500 free credits, no
-card) and approve. Or run `/unblockingapi:setup` and Claude walks you through it.
+card, once they confirm their email) and approve. Or run `/unblockingapi:setup` and Claude walks you through it.
 
 ## What you get
 

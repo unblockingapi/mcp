@@ -8,13 +8,17 @@
  * http.ts; both serve the tools in server.ts.
  *
  * Transport: stdio. Config via environment:
- *   UNBLOCKINGAPI_KEY        (required)  your API key
+ *   UNBLOCKINGAPI_KEY        (optional)  your API key; without it, the key saved by
+ *                                        `sign_in` / `login` (src/device.ts) is used,
+ *                                        and without that the `sign_in` tool is offered
  *   UNBLOCKINGAPI_BASE_URL   (optional)  override base URL (default https://api.unblockingapi.com)
  *   UNBLOCKINGAPI_TIMEOUT_MS (optional)  request timeout in ms (default 180000)
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { UnblockingApiClient, missingKeyMessage } from "./client.js";
 import { VERSION, createServer } from "./server.js";
+import { login } from "./login.js";
+import { readSavedKey } from "./device.js";
 
 export { VERSION, createServer, looksLikeItNeedsJs, templateMatchesUrl } from "./server.js";
 
@@ -27,7 +31,7 @@ export { VERSION, createServer, looksLikeItNeedsJs, templateMatchesUrl } from ".
 function resolveApiKey(): string {
   const value = process.env.UNBLOCKINGAPI_KEY?.trim() ?? "";
   if (value && !value.startsWith("${")) return value;
-  return "";
+  return readSavedKey();
 }
 
 const apiKey = resolveApiKey();
@@ -36,9 +40,17 @@ const timeoutMs = process.env.UNBLOCKINGAPI_TIMEOUT_MS
   ? Number(process.env.UNBLOCKINGAPI_TIMEOUT_MS)
   : undefined;
 
-export const server = createServer(new UnblockingApiClient({ apiKey, baseUrl, timeoutMs }));
+// No key at all: offer the device-code sign-in as a tool.
+export const server = createServer(
+  new UnblockingApiClient({ apiKey, baseUrl, timeoutMs }),
+  apiKey ? {} : { signIn: {} },
+);
 
 async function main() {
+  // `npx @unblockingapi/mcp login`: the same sign-in, for a terminal.
+  if (process.argv[2] === "login") {
+    process.exit(await login());
+  }
   if (!apiKey) {
     // Surface a clear message on stderr; the server still starts so the host can
     // show the tool list, but every fetch will fail fast with a clear error.

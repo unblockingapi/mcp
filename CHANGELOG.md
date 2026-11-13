@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.0 — 2026-11-13
+
+### Added
+
+- **Sign in without a key (stdio).** Started without `UNBLOCKINGAPI_KEY`, the
+  server offers a `sign_in` tool: it returns a link and a short code, the person
+  signs in or creates an account on app.unblockingapi.com and approves, and the
+  next `sign_in` call finishes. The key goes into the server and
+  `~/.config/unblockingapi/credentials` (mode 600), never into the chat; later
+  starts read it from there. `npx @unblockingapi/mcp login` does the same in a
+  terminal. Uses the new device-code endpoints on app.unblockingapi.com.
+- `guides/api.md` documents that device sign-in over plain HTTP, for agents and
+  scripts that need a key.
+
+### Changed
+
+- New accounts now get their 500 free credits once they confirm their email;
+  the messages and docs say so.
+
 ## 0.8.4 — 2026-11-05
 
 ### Fixed

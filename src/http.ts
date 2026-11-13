@@ -178,7 +178,7 @@ async function handleMcp(req: IncomingMessage, res: ServerResponse): Promise<str
       res,
       401,
       -32001,
-      `Sign in required: connect with OAuth, or send "Authorization: Bearer <your UnblockingAPI key>". Get a key with 500 free credits at https://unblockingapi.com — setup: ${DOCS_URL}`,
+      `Sign in required: connect with OAuth, or send "Authorization: Bearer <your UnblockingAPI key>". New accounts get 500 free credits once they confirm their email: https://unblockingapi.com — setup: ${DOCS_URL}`,
       challenge(),
     );
     return "-";
