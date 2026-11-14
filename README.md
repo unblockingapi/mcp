@@ -184,7 +184,7 @@ stdio via `npx -y @unblockingapi/mcp` and needs the env var `UNBLOCKINGAPI_KEY`.
 
 | Var | Required | Default | Purpose |
 | --- | --- | --- | --- |
-| `UNBLOCKINGAPI_KEY` | yes | — | Your API key. |
+| `UNBLOCKINGAPI_KEY` | no | — | Your API key. Optional for stdio: without it, use the `sign_in` tool or `npx @unblockingapi/mcp login`. |
 | `UNBLOCKINGAPI_BASE_URL` | no | `https://api.unblockingapi.com` | Override the API base URL. |
 | `UNBLOCKINGAPI_TIMEOUT_MS` | no | `180000` | Per-request timeout. A plain fetch that falls back to a browser can take ~170 s. |
 
