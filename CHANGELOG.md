@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.1 — 2026-11-14
+
+### Fixed
+
+- Claude plugin directory findings reported on 0.9.0 (unchanged since 0.8.4):
+  - `plugin.json`: dropped "no key to copy" from the description, inlined the
+    hosted MCP server (`https://mcp.unblockingapi.com/mcp`, HTTP, no headers
+    or env) so the manifest no longer only points at `.mcp.json`, and set
+    `privacyPolicyUrl` to `https://unblockingapi.com/privacy`. The plugin
+    stays OAuth-only; no `userConfig` credential was added.
+  - Listings-aggregator guide: reworded the job line that said `` `location`
+    set`` , which was the only plausible wording match for the
+    file-registry-redirect warning. The file does not write package-manager
+    config.
+
 ## 0.9.0 — 2026-11-13
 
 ### Added

@@ -45,8 +45,8 @@ prices and sizes defensively (strip currency symbols, thousands separators).
 
 ## 3. Refresh
 
-- A scheduled job per source (every few hours is plenty for real estate), with
-  `location` set to the source's country.
+- A scheduled job per source (every few hours is plenty for real estate), using
+  the source country's two-letter code as the API `location`.
 - Upsert by `(source, sourceId)`; keep `firstSeenAt` and `lastSeenAt`, and hide
   listings not seen in the last few runs.
 - Deduplicate across sources by a normalised key (address + price + size) when

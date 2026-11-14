@@ -21,7 +21,7 @@ import { PAGE_CACHE_TTL_MS, PageCache, shapeBody, type BodyFormat } from "./page
 import { GUIDE_TOPICS, readGuide, type GuideTopic } from "./guides.js";
 import { appUrl, saveKey, startDeviceGrant, waitForApproval, type DeviceGrant } from "./device.js";
 
-export const VERSION = "0.9.0";
+export const VERSION = "0.9.1";
 
 /** Default cap on the body returned to the model, after Markdown conversion or `select`. */
 const DEFAULT_MAX_CHARS = 80_000;
